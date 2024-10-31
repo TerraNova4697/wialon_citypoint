@@ -19,9 +19,10 @@ RUN python -m venv /py && \
         --disabled-password \
         --no-create-home \
         transport-user && \
-    mkdir -p logs/development.log && \
-    mkdir -p logs/test.log && \
-    mkdir -p logs/prod.log && \
+    mkdir -p logs/ && \
+    touch logs/development.log && \
+    touch logs/test.log && \
+    touch logs/prod.log && \
     chown -R transport-user:transport-user logs && \
     chmod 755 logs
 
