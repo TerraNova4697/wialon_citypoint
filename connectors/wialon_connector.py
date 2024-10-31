@@ -22,6 +22,7 @@ class WialonConnector(AbstractConnector):
         asyncio.create_task(self.fetch_transport_states(16))
 
     async def fetch_transport_states(self, discreteness: int):
+        self.destination = None
         while True:
             logger.info('Fetching states')
             data = self.source.get_transports()
@@ -44,13 +45,8 @@ class WialonConnector(AbstractConnector):
                         name=self.transport_map.get(str(transport['id']))['nm']
                     )
                     telemetry.append(t)
-                    if not self.destination.send_data(*t.form_mqtt_message()):
-                        pass
-                        # TODO: Save telemetry to DB.
-
-            # if not self.destination or not self.destination.send_data(telemetry):
-            #     logger.info("DATA SENT WIALON")
-            #     save_unsent_telemetry(telemetry)
+                    if not self.destination or not self.destination.send_data(*t.form_mqtt_message()):
+                        save_unsent_telemetry(t)
 
             await asyncio.sleep(discreteness)
 

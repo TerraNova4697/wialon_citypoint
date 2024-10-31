@@ -58,6 +58,7 @@ class CityPointConnector(AbstractConnector):
             logger.info('end fetch_timezones')
 
     async def fetch_transport_states(self, discreteness: int):
+        self.destination = None
         self.data['transports_id'] = get_all_cars_ids()
         sensors = self.source.get_sensors()
         add_sensors_if_not_exist(sensors['data'])
@@ -100,15 +101,9 @@ class CityPointConnector(AbstractConnector):
                         name=f"{reg_number} {model}"
                     )
 
-                    if not self.destination.send_data(*t.form_mqtt_message()):
-                        pass
-                        # TODO: Save telemetry to DB.
+                    if not self.destination or not self.destination.send_data(*t.form_mqtt_message()):
+                        save_unsent_telemetry(t)
 
-                    telemetry.append(t)
-
-            # if not self.destination or not self.destination.send_data(telemetry):
-            #     logger.info("DATA SENT CITY POINT")
-            #     save_unsent_telemetry(telemetry)
 
             await asyncio.sleep(discreteness)
 
