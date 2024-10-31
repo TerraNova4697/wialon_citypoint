@@ -23,7 +23,7 @@ RUN python -m venv /py && \
     mkdir -p ./logs/test.log && \
     mkdir -p ./logs/prod.log && \
     chown -R transport-user:transport-user /logs && \
-    chmod 755 /logs
+    chmod 755 ./logs
 
     ENV PATH="/py/bin:$PATH"
 

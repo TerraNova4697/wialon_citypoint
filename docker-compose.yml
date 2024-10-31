@@ -11,6 +11,7 @@ services:
     volumes:
       - ./:/app
       - dev-logs:/logs/
+    restart: always
     command: >
       sh -c "python main.py"
 
