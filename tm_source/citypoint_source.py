@@ -40,7 +40,7 @@ class CityPointSource(AbstractTransportSource):
     def get_token_if_expired(self):
         if not self.is_connected():
             while not self.get_access_token():
-                sleep(2)
+                sleep(10)
 
     def get_sensors(self):
         self.get_token_if_expired()
