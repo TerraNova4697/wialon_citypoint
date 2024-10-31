@@ -5,9 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="100364a3-678e-4c70-8692-538301af6e20" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/database/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/database/database.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/connectors/city_point_connector.py" beforeDir="false" afterPath="$PROJECT_DIR$/connectors/city_point_connector.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/connectors/wialon_connector.py" beforeDir="false" afterPath="$PROJECT_DIR$/connectors/wialon_connector.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/database/operations.py" beforeDir="false" afterPath="$PROJECT_DIR$/database/operations.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mqtt_client/cuba_mqtt_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/mqtt_client/cuba_mqtt_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tm_source/citypoint_source.py" beforeDir="false" afterPath="$PROJECT_DIR$/tm_source/citypoint_source.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tm_source/wialon_source.py" beforeDir="false" afterPath="$PROJECT_DIR$/tm_source/wialon_source.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -34,14 +39,14 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/nikita/Learn/PycharmProjects/TransportMonitor/database&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.main.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/nikita/Learn/PycharmProjects/TransportMonitor/database"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/database" />

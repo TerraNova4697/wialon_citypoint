@@ -1,3 +1,5 @@
+import os
+import logging
 import asyncio
 from abc import ABC
 
@@ -15,6 +17,9 @@ from database.operations import get_all_sensors, add_sensors_if_not_exist, get_f
     add_transport_if_not_exists, save_unsent_telemetry, get_sensors_by_destination
 
 
+logger = logging.getLogger(os.environ.get('LOGGER'))
+
+
 class CityPointConnector(AbstractConnector):
 
 
@@ -28,29 +33,29 @@ class CityPointConnector(AbstractConnector):
 
     async def start_loop(self):
         while not self.source.auth():
-            print('Failed authentication')
+            logger.info('Failed authentication')
             await asyncio.sleep(10)
-        print('Authenticated')
+        logger.info('Authenticated')
         asyncio.create_task(self.check_transport_with_discreteness(86400))
         asyncio.create_task(self.fetch_timezones(86400))
         asyncio.create_task(self.fetch_transport_states(16))
 
     async def check_transport_with_discreteness(self, discreteness: int):
 
-        print("start check_transport_with_discreteness")
+        logger.info("start check_transport_with_discreteness")
         while True:
             transports_result = self.source.get_transport_list()
             transports = transports_result['data']
             add_transport_if_not_exists(transports)
             self.load_transport_in_memory(transports)
             await asyncio.sleep(discreteness)
-            print("end check_transport_with_discreteness")
+            logger.info("end check_transport_with_discreteness")
 
     async def fetch_timezones(self, discreteness: int):
-        print("start fetch_timezones")
+        logger.info("start fetch_timezones")
         while True:
             await asyncio.sleep(discreteness)
-            print('end fetch_timezones')
+            logger.info('end fetch_timezones')
 
     async def fetch_transport_states(self, discreteness: int):
         self.data['transports_id'] = get_all_cars_ids()
@@ -63,12 +68,12 @@ class CityPointConnector(AbstractConnector):
         while True:
             time_format = "%Y-%m-%dT%H:%M:%SZ"
             dt = datetime.now()
-            print('Fetching states', dt)
+            logger.info('Fetching states')
             ts = datetime.timestamp(dt)
             transports = self.source.get_transports(query_filter=','.join(f'"{str(car_id)}"' for car_id in self.data['transports_id']))
 
             telemetry = []
-            print()
+            logger.info(f"Fetched {len(transports['data'])} units")
             for transport in transports['data']:
 
                 if int(transport['id']) in self.data['transports_id']:
@@ -96,13 +101,13 @@ class CityPointConnector(AbstractConnector):
                     )
 
                     if not self.destination.send_data(*t.form_mqtt_message()):
-                        print("DATA NOT SENT")
+                        pass
                         # TODO: Save telemetry to DB.
 
                     telemetry.append(t)
 
             # if not self.destination or not self.destination.send_data(telemetry):
-            #     print("DATA SENT CITY POINT")
+            #     logger.info("DATA SENT CITY POINT")
             #     save_unsent_telemetry(telemetry)
 
             await asyncio.sleep(discreteness)

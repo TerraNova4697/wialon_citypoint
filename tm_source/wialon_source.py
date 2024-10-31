@@ -1,7 +1,12 @@
 import requests
 import json
+import os
+import logging
 
 from tm_source.abs_transport_src import AbstractTransportSource
+
+
+logger = logging.getLogger(os.environ.get('LOGGER'))
 
 
 class WialonSource(AbstractTransportSource):
@@ -40,9 +45,10 @@ class WialonSource(AbstractTransportSource):
             "to": 0
         }
         res = requests.get(self.BASE_URL + 'core/search_items&params=' + self.convert_params(params) + f"&sid={self.access_token}")
-        if res.status_code != 200:
-            return False
-        return res.json()
+        if 200 <= res.status_code < 300:
+            return res.json()
+        logger.warning(f"Could not fetch transport list. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
 
     def get_transports(self, query_filter: str = ''):
         if not self.is_connected():
@@ -61,9 +67,10 @@ class WialonSource(AbstractTransportSource):
             "to": 0
         }
         res = requests.get(self.BASE_URL + 'core/search_items&params=' + self.convert_params(params) + f"&sid={self.access_token}")
-        if res.status_code != 200:
-            return False
-        return res.json()
+        if 200 <= res.status_code < 300:
+            return res.json()
+        logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
 
     def is_connected(self):
         if not self.access_token:
@@ -74,10 +81,12 @@ class WialonSource(AbstractTransportSource):
     def auth(self):
         params = {"token": self.refresh_token}
         res = requests.get(self.BASE_URL + 'token/login&params=' + json.dumps(params))
-        if res.status_code != 200:
-            return False
-        self.update_token(res.json())
-        return True
+        if 200 <= res.status_code < 300:
+            self.update_token(res.json())
+            return True
+        logger.warning(f"Could not authenticate. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
+        return False
 
     def update_token(self, token_params: dict):
         self.access_token = token_params['eid']

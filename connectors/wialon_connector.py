@@ -1,4 +1,6 @@
 import asyncio
+import os
+import logging
 
 from connectors.abs_connector import AbstractConnector
 from telemetry_objects.transport import Transport
@@ -6,11 +8,14 @@ from telemetry_objects.transport import Transport
 from database.operations import save_unsent_telemetry, add_wialon_transport_if_not_exists
 
 
+logger = logging.getLogger(os.environ.get("LOGGER"))
+
+
 class WialonConnector(AbstractConnector):
 
     async def start_loop(self):
         while not self.source.auth():
-            print('Failed authentication')
+            logger.info('Failed authentication')
             await asyncio.sleep(10)
 
         asyncio.create_task(self.check_transport_with_discreteness(86400))
@@ -18,7 +23,9 @@ class WialonConnector(AbstractConnector):
 
     async def fetch_transport_states(self, discreteness: int):
         while True:
+            logger.info('Fetching states')
             data = self.source.get_transports()
+            logger.info(f"Fetched {len(data['items'])} units")
             telemetry = []
 
             for transport in data['items']:
@@ -38,11 +45,11 @@ class WialonConnector(AbstractConnector):
                     )
                     telemetry.append(t)
                     if not self.destination.send_data(*t.form_mqtt_message()):
-                        print("DATA NOT SENT")
+                        pass
                         # TODO: Save telemetry to DB.
 
             # if not self.destination or not self.destination.send_data(telemetry):
-            #     print("DATA SENT WIALON")
+            #     logger.info("DATA SENT WIALON")
             #     save_unsent_telemetry(telemetry)
 
             await asyncio.sleep(discreteness)
@@ -51,6 +58,7 @@ class WialonConnector(AbstractConnector):
         while True:
             transports_result = self.source.get_transport_list()
             transports = transports_result['items']
+            logger.info(f"Fetched {len(transports)} units")
             transport_props = []
             for transport in transports:
 

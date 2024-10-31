@@ -1,3 +1,5 @@
+import os
+import logging
 from time import sleep
 
 from tm_source.abs_transport_src import AbstractTransportSource
@@ -6,6 +8,9 @@ import requests
 from functools import wraps
 
 import jwt
+
+
+logger = logging.getLogger(os.environ.get('LOGGER'))
 
 
 class CityPointSource(AbstractTransportSource):
@@ -47,8 +52,10 @@ class CityPointSource(AbstractTransportSource):
             url=self.BASE_URL + self.SENSORS_INFO,
             headers=headers
         )
-        if res.status_code == 200:
+        if 200 <= res.status_code < 300:
             return res.json()
+        logger.warning(f"Could not fetch sensors. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
 
     def get_transport_list(self):
         self.get_token_if_expired()
@@ -60,8 +67,10 @@ class CityPointSource(AbstractTransportSource):
             url=self.BASE_URL + f"/user/{self.user_id}" + self.TS_LIST,
             headers=headers
         )
-        if res.status_code == 200:
+        if 200 <= res.status_code < 300:
             return res.json()
+        logger.warning(f"Could not fetch transport list. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
 
     def get_transports(self, query_filter: str = ''):
         self.get_token_if_expired()
@@ -74,8 +83,10 @@ class CityPointSource(AbstractTransportSource):
             url=self.BASE_URL + f"/user/{self.user_id}" + self.TS_INFO,
             headers=headers
         )
-        if res.status_code == 200:
+        if 200 <= res.status_code < 300:
             return res.json()
+        logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
 
     def update_token(self, token_params: dict):
         self.token_type = token_params['token_type']
@@ -93,10 +104,13 @@ class CityPointSource(AbstractTransportSource):
                 "Content-Type": "application/x-www-form-urlencoded"
             }
         )
-        if res.status_code != 200:
-            return False
-        self.update_token(res.json())
-        return True
+        if 200 <= res.status_code < 300:
+            self.update_token(res.json())
+            return True
+        logger.warning(f"Could not authenticate. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
+        return False
+
 
     def get_access_token(self):
         res = requests.post(
@@ -106,10 +120,12 @@ class CityPointSource(AbstractTransportSource):
                 "Content-Type": "application/x-www-form-urlencoded"
             }
         )
-        if res.status_code != 200:
-            return False
-        self.update_token(res.json())
-        return True
+        if 200 <= res.status_code < 300:
+            self.update_token(res.json())
+            return True
+        logger.warning(f"Could not update token. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
+
 
     def is_connected(self):
         return datetime.now() > self.expires_at

@@ -6,6 +6,7 @@ from sqlalchemy.sql import exists
 
 from database.database import Session
 from database.models import Sensor, Car, CarState
+from telemetry_objects.transport import Transport
 
 
 def get_all_sensors():
@@ -77,10 +78,18 @@ def add_transport_if_not_exists(transports):
             except (IntegrityError, UniqueViolation) as e:
                 pass
 
-def save_unsent_telemetry(telemetry):
+def save_unsent_telemetry_list(telemetry: list[Transport]):
     with Session() as session:
         for data in telemetry:
             session.add(CarState(
                 **data.to_model()
             ))
+        session.commit()
+
+
+def save_unsent_telemetry(telemetry: Transport):
+    with Session() as session:
+        session.add(CarState(
+            **telemetry.to_model()
+        ))
         session.commit()
