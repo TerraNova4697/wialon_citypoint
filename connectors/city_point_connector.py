@@ -87,7 +87,7 @@ class CityPointConnector(AbstractConnector):
                     model = transport_model.get('attributes', {}).get('Model', '')
                     reg_number = transport_model.get('attributes', {}).get('RegNumber', '').replace('_', ' ')
                     t = Transport(
-                        ts=datetime.timestamp(datetime.strptime(transport['attributes']['RecordDate'], time_format) + timedelta(hours=5)),
+                        ts=datetime.timestamp(datetime.strptime(transport['attributes']['RecordDate'], time_format)),
                         is_sent=False,
                         latitude=transport['attributes']['Lat'],
                         longitude=transport['attributes']['Lon'],
@@ -96,7 +96,7 @@ class CityPointConnector(AbstractConnector):
                         car_id=int(transport['id']),
                         ignition=ignition[0]['value'],
                         light=light[0]['value'],
-                        last_conn=datetime.timestamp(datetime.strptime(transport['attributes']['LattestGpsDate'], time_format) + timedelta(hours=5)),
+                        last_conn=datetime.timestamp(datetime.strptime(transport['attributes']['LattestGpsDate'], time_format)),
                         name=f"{reg_number} {model}"
                     )
 
