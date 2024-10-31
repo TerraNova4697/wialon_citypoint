@@ -33,7 +33,7 @@ class CityPointConnector(AbstractConnector):
         print('Authenticated')
         asyncio.create_task(self.check_transport_with_discreteness(86400))
         asyncio.create_task(self.fetch_timezones(86400))
-        asyncio.create_task(self.fetch_transport_states(60))
+        asyncio.create_task(self.fetch_transport_states(16))
 
     async def check_transport_with_discreteness(self, discreteness: int):
 
@@ -94,11 +94,16 @@ class CityPointConnector(AbstractConnector):
                         last_conn=datetime.timestamp(datetime.strptime(transport['attributes']['LattestGpsDate'], time_format) + timedelta(hours=5)),
                         name=f"{reg_number} {model}"
                     )
+
+                    if not self.destination.send_data(*t.form_mqtt_message()):
+                        print("DATA NOT SENT")
+                        # TODO: Save telemetry to DB.
+
                     telemetry.append(t)
 
-            if not self.destination or not self.destination.send_data(telemetry):
-                print("DATA SENT CITY POINT")
-                save_unsent_telemetry(telemetry)
+            # if not self.destination or not self.destination.send_data(telemetry):
+            #     print("DATA SENT CITY POINT")
+            #     save_unsent_telemetry(telemetry)
 
             await asyncio.sleep(discreteness)
 
