@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+
+  app:
+    build:
+      context: .
+    env_file:
+      - .env
+    ports:
+      - "8101:8101"
+    volumes:
+      - ./:/app
+      - dev-logs:/logs/
+    command: >
+      sh -c "python main.py"
+
+volumes:
+  dev-logs:
