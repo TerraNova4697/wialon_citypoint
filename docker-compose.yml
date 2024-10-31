@@ -3,6 +3,7 @@ services:
   app:
     build:
       context: .
+    container_name: transport_integration
     env_file:
       - .env
     ports:
