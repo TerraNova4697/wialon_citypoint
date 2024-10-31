@@ -58,7 +58,6 @@ class CityPointConnector(AbstractConnector):
             logger.info('end fetch_timezones')
 
     async def fetch_transport_states(self, discreteness: int):
-        self.destination = None
         self.data['transports_id'] = get_all_cars_ids()
         sensors = self.source.get_sensors()
         add_sensors_if_not_exist(sensors['data'])

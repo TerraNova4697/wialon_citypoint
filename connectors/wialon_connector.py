@@ -22,7 +22,6 @@ class WialonConnector(AbstractConnector):
         asyncio.create_task(self.fetch_transport_states(16))
 
     async def fetch_transport_states(self, discreteness: int):
-        self.destination = None
         while True:
             logger.info('Fetching states')
             data = self.source.get_transports()
