@@ -1,8 +1,7 @@
 services:
 
   app:
-    build:
-      context: .
+    image: transport_integration:v0.1
     container_name: transport_integration
     env_file:
       - .env
