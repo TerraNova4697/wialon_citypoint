@@ -40,3 +40,7 @@ class AbstractTransportSource(ABC):
     @abstractmethod
     def get_transport_list(self):
         pass
+
+    @abstractmethod
+    def get_messages(self):
+        pass

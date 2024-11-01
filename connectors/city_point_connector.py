@@ -1,14 +1,18 @@
 import os
 import logging
 import asyncio
+import re
 from abc import ABC
 
 from datetime import datetime, timedelta
 from copy import copy
 
 from tb_gateway_mqtt import TBGatewayMqttClient
+from tb_rest_client import RestClientPE
 
 from connectors.abs_connector import AbstractConnector
+from mqtt_client.cuba_rest_client import CubaRestClient
+from telemetry_objects.alarm import Alarm
 from telemetry_objects.transport import Transport
 from tm_source.abs_transport_src import AbstractTransportSource
 from mqtt_client.abs_destination import AbstractDestination
@@ -20,6 +24,17 @@ from database.operations import get_all_sensors, add_sensors_if_not_exist, get_f
 logger = logging.getLogger(os.environ.get('LOGGER'))
 
 
+def full_date_to_timestamp(date: str) -> int:
+    time_format = "%Y-%m-%dT%H:%M:%SZ"
+    return int(datetime.timestamp(datetime.strptime(date, time_format)))
+
+
+def remove_html_tags(text):
+    # Use regex to remove HTML tags
+    clean_text = re.sub(r'<.*?>', '', text)
+    return clean_text
+
+
 class CityPointConnector(AbstractConnector):
 
 
@@ -27,18 +42,65 @@ class CityPointConnector(AbstractConnector):
         self,
         source: AbstractTransportSource,
         destination: AbstractDestination | None,
-        data = None
+        data = None,
+        rest_client: CubaRestClient = None
     ):
         super().__init__(source, destination, data)
+        self.rest_client: CubaRestClient | None = rest_client
 
     async def start_loop(self):
         while not self.source.auth():
             logger.info('Failed authentication')
             await asyncio.sleep(10)
         logger.info('Authenticated')
+
+        self.data['transports_id'] = get_all_cars_ids()
+        sensors = self.source.get_sensors()
+        add_sensors_if_not_exist(sensors['data'])
+        self.data['fuel_sensors_id'] = get_sensors_by_destination(100)
+        self.data['ignition_sensors_id'] = get_sensors_by_destination(1)
+        self.data['light_sensors_id'] = get_sensors_by_destination(1300)
+
         asyncio.create_task(self.check_transport_with_discreteness(86400))
         asyncio.create_task(self.fetch_timezones(86400))
         asyncio.create_task(self.fetch_transport_states(16))
+
+    async def fetch_notifications(self, discreteness):
+        while True:
+            await asyncio.sleep(discreteness)
+            notifications = self.source.get_messages()
+            alarms = [alarm for alarm in notifications['data'] if alarm['attributes']['Level'] >= 4]
+            cars = [car for car in notifications['included'] if car['type'] == 'car']
+            drivers = [driver for driver in notifications['included'] if driver['type'] == 'driver']
+            if not alarms:
+                continue
+            # TODO: save alarms to DB.
+            alarm_objects = []
+            for alarm in alarms:
+                message = remove_html_tags(alarm['attributes']['Message']).split('\\')[0]
+                car_id = alarm['relationships'].get('Car', {}).get('data', {}).get('id')
+                driver_id = alarm['relationships'].get('Driver', {}).get('data', {}).get('id')
+                driver = [driver for driver in drivers if driver['id'] == driver_id]
+                a = Alarm(
+                    id=int(alarm['id']),
+                    title=alarm['attributes']['Title'],
+                    message=message,
+                    level=alarm['attributes']['Level'],
+                    latitude=alarm['attributes']['Latitude'],
+                    longitude=alarm['attributes']['Longitude'],
+                    record_date=full_date_to_timestamp(alarm['attributes']['RecordDate']),
+                    date_of_creation=full_date_to_timestamp(alarm['attributes']['DateOfCreation']),
+                    car_id=car_id,
+                    driver_first_name=driver['attributes']['FIO']['FirstName'] if driver else '',
+                    driver_last_name=driver['attributes']['FIO']['LastName'] if driver else '',
+                    place=None
+                )
+
+                if not self.rest_client or not self.rest_client.post_alarm(a):
+                    # TODO: Save to DB.
+                    pass
+                    # save_unsent_alarm_(a)
+
 
     async def check_transport_with_discreteness(self, discreteness: int):
 
@@ -58,13 +120,6 @@ class CityPointConnector(AbstractConnector):
             logger.info('end fetch_timezones')
 
     async def fetch_transport_states(self, discreteness: int):
-        self.data['transports_id'] = get_all_cars_ids()
-        sensors = self.source.get_sensors()
-        add_sensors_if_not_exist(sensors['data'])
-        self.data['fuel_sensors_id'] = get_sensors_by_destination(100)
-        self.data['ignition_sensors_id'] = get_sensors_by_destination(1)
-        self.data['light_sensors_id'] = get_sensors_by_destination(1300)
-
         while True:
             time_format = "%Y-%m-%dT%H:%M:%SZ"
             dt = datetime.now()

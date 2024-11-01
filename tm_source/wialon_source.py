@@ -20,7 +20,27 @@ class WialonSource(AbstractTransportSource):
         self.BASE_URL: str = 'https://hst-api.wialon.com/wialon/ajax.html?svc='
 
     def get_velocity_zones(self):
-        pass
+        if not self.is_connected():
+            self.auth()
+        params = {
+            "spec": {
+                "itemsType": "avl_resource",
+                "propName": "zones_library",
+                "propValueMask": "*",
+                "sortType": "sys_name",
+                "propType": "propitemname"
+            },
+            "force": 1,
+            "flags": 4097,
+            "from": 0,
+            "to": 0
+        }
+        res = requests.get(
+            self.BASE_URL + 'core/search_items&params=' + self.convert_params(params) + f"&sid={self.access_token}")
+        if 200 <= res.status_code < 300:
+            return res.json()
+        logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
 
     def get_planned_routes(self):
         pass
@@ -62,13 +82,82 @@ class WialonSource(AbstractTransportSource):
                 "propType": "avl_unit"
             },
             "force": 1,
-            "flags": 11535361,
+            "flags": 4611686018427387903,
             "from": 0,
             "to": 0
         }
         res = requests.get(self.BASE_URL + 'core/search_items&params=' + self.convert_params(params) + f"&sid={self.access_token}")
         if 200 <= res.status_code < 300:
             return res.json()
+        logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
+
+    def get_messages(self):
+        if not self.is_connected():
+            self.auth()
+        params = {
+            "spec": {
+                "itemsType": "avl_resource",
+                "propName": "avl_resource,notifications,drivers",
+                "propValueMask": "*,*,*",
+                "sortType": "sys_name",
+                "propType": "avl_resource,propitemname,propitemname"
+            },
+            "force": 1,
+            "flags": 1281,
+            "from": 0,
+            "to": 0
+        }
+        res = requests.get(self.BASE_URL + "core/search_items&params=" + self.convert_params(params) + f"&sid={self.access_token}")
+        if 200 <= res.status_code < 300:
+            return res.json()
+        logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
+
+    def get_messages_from_session(self):
+        if not self.is_connected():
+            self.auth()
+        params = {
+            "itemId": 30,
+        }
+        res = requests.get(self.BASE_URL + f'resource/get_notification_data&params={self.convert_params(params)}' + f"&sid={self.access_token}")
+        if 200 <= res.status_code < 300:
+            return res.json()
+        logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
+
+    def read_zones(self):
+        if not self.is_connected():
+            self.auth()
+        res = requests.get(self.BASE_URL + 'core/search_items&params&params={}' + f"&sid={self.access_token}")
+
+    def unload(self):
+        if not self.is_connected():
+            self.auth()
+        res = requests.get(self.BASE_URL + 'messages/unload&params={}' + f"&sid={self.access_token}")
+        if 200 <= res.status_code < 300:
+            return res.json()
+        return res.json()
+        logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
+
+    def load_messages(self):
+        if not self.is_connected():
+            self.auth()
+        params = {
+            "itemId":30,
+            "timeFrom":1727722800,
+            "timeTo":1730314800,
+            "flags":1,
+            "flagsMask":65281,
+            "loadCount":3
+        }
+        res = requests.get(self.BASE_URL + 'messages/load_interval&params=' + self.convert_params(params) + f"&sid={self.access_token}")
+        print(res.status_code)
+        print(res.json())
+        if 200 <= res.status_code < 300:
+            return res.json()
+        return res.json()
         logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
         logger.warning(f"Message: {res.json()}")
 

@@ -27,6 +27,7 @@ class CityPointSource(AbstractTransportSource):
         self.TS_INFO: str = f"/cars/states?fields[carState]=Lon,Lat,Velocity,RecordDate,LattestGpsDate,Sensors.value,Sensors.calibration"
         self.TS_LIST: str = f"/cars?filter[car]=eq(IsHidden,0)"
         self.SENSORS_INFO: str = f"/sensors"
+        self.MESSAGES: str = '/notifications?include=Driver,Zone,Car&page[limit]=10'
 
     def get_planned_routes(self):
         pass
@@ -126,6 +127,20 @@ class CityPointSource(AbstractTransportSource):
         logger.warning(f"Could not update token. Status code: {res.status_code}")
         logger.warning(f"Message: {res.json()}")
 
+    def get_messages(self):
+        self.get_token_if_expired()
+        headers = {
+            "Accept": "application/vnd.api+json",
+            "Authorization": f"{self.token_type} {self.access_token}"
+        }
+        res = requests.get(
+            url=self.BASE_URL + f"/user/{self.user_id}" + self.MESSAGES,
+            headers=headers
+        )
+        if 200 <= res.status_code < 300:
+            return res.json()
+        logger.warning(f"Could not fetch messages. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
 
     def is_connected(self):
         return datetime.now() > self.expires_at
