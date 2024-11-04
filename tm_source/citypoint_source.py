@@ -28,6 +28,7 @@ class CityPointSource(AbstractTransportSource):
         self.TS_LIST: str = f"/cars?filter[car]=eq(IsHidden,0)"
         self.SENSORS_INFO: str = f"/sensors"
         self.MESSAGES: str = '/notifications?include=Driver,Zone,Car&page[limit]=10'
+        self.GEO_ZONES: str = '/zones?fields[zone]=Name,Description,Geometry'
 
     def get_planned_routes(self):
         pass
@@ -36,7 +37,19 @@ class CityPointSource(AbstractTransportSource):
         pass
 
     def get_velocity_zones(self):
-        pass
+        self.get_token_if_expired()
+        headers = {
+            "Accept": "application/vnd.api+json",
+            "Authorization": f"{self.token_type} {self.access_token}"
+        }
+        res = requests.get(
+            url=self.BASE_URL + f"/user/{self.user_id}" + self.SENSORS_INFO,
+            headers=headers
+        )
+        if 200 <= res.status_code < 300:
+            return res.json()
+        logger.warning(f"Could not fetch geo-zones. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
 
     def get_token_if_expired(self):
         if not self.is_connected():
