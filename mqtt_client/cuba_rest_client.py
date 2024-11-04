@@ -1,6 +1,7 @@
 import os
+import logging
 
-from sqlalchemy.testing.plugin.plugin_base import logging
+
 from tb_rest_client import RestClientPE
 from tb_rest_client.models.models_pe import Alarm, DeviceId
 from tb_rest_client.rest import ApiException

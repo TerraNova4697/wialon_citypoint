@@ -2,6 +2,8 @@ import asyncio
 import os
 import logging
 
+from urllib3.exceptions import NameResolutionError
+
 from connectors.abs_connector import AbstractConnector
 from telemetry_objects.transport import Transport
 
@@ -14,9 +16,15 @@ logger = logging.getLogger(os.environ.get("LOGGER"))
 class WialonConnector(AbstractConnector):
 
     async def start_loop(self):
-        while not self.source.auth():
+        try:
+            res = self.source.auth()
+        except (ConnectionError, NameResolutionError, TimeoutError) as exc:
+            logger.exception(f"Exception trying to authenticate: {exc}")
+            res = False
+        while not res:
             logger.info('Failed authentication')
             await asyncio.sleep(10)
+            await self.start_loop()
 
         asyncio.create_task(self.check_transport_with_discreteness(86400))
         asyncio.create_task(self.fetch_transport_states(16))
@@ -24,7 +32,12 @@ class WialonConnector(AbstractConnector):
     async def fetch_transport_states(self, discreteness: int):
         while True:
             logger.info('Fetching states')
-            data = self.source.get_transports()
+            try:
+                data = self.source.get_transports()
+            except (ConnectionError, NameResolutionError, TimeoutError) as exc:
+                logger.exception(f"Exception trying to fetch transport states: {exc}")
+                await asyncio.sleep(10)
+                continue
             logger.info(f"Fetched {len(data['items'])} units")
             telemetry = []
 
@@ -51,7 +64,12 @@ class WialonConnector(AbstractConnector):
 
     async def check_transport_with_discreteness(self, discreteness: int):
         while True:
-            transports_result = self.source.get_transport_list()
+            try:
+                transports_result = self.source.get_transport_list()
+            except (ConnectionError, NameResolutionError, TimeoutError) as exc:
+                logger.exception(f"Exception trying to fetch transport list: {exc}")
+                await asyncio.sleep(10)
+                continue
             transports = transports_result['items']
             logger.info(f"Fetched {len(transports)} units")
             transport_props = []
