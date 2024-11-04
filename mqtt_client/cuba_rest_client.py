@@ -17,21 +17,46 @@ class CubaRestClient:
         self.CUBA_USER = os.environ.get('CUBA_USER')
         self.CUBA_PASSWORD = os.environ.get('CUBA_PASSWORD')
 
-    def post_alarm(self, alarm):
+    def post_alarm(self, alarm, device_name):
         with RestClientPE(base_url=self.BASE_URL) as rest_client:
             try:
                 rest_client.login(self.CUBA_USER, self.CUBA_PASSWORD)
-                # device_id = get_device_id_by_name(alarm.car_id)
+                # get device by name
+                device = rest_client.get_tenant_device(device_name)
                 alarm = alarm.to_rest_object()
-                alarm.device = DeviceId(
-                    '80c4c6b0-9742-11ef-87ce-23643fc703ee',
-                    'DEVICE'
-                )
+                # Set device id as attribute
+                alarm.device = device.id
                 rest_client.save_alarm(alarm)
                 return True
 
             except ApiException as e:
-                logging.exception(e)
+                logger.exception(e)
                 return False
+            finally:
+                rest_client.logout()
+
+    def get_tenant_device(self, device_name):
+        with RestClientPE(base_url=self.BASE_URL) as rest_client:
+            try:
+                rest_client.login(self.CUBA_USER, self.CUBA_PASSWORD)
+                device = rest_client.get_tenant_device(device_name)
+                return device
+
+            except ApiException as e:
+                logger.exception(e)
+            finally:
+                rest_client.logout()
+
+    def get_transport_devices(self):
+        with RestClientPE(base_url=self.BASE_URL) as rest_client:
+            try:
+                rest_client.login(self.CUBA_USER, self.CUBA_PASSWORD)
+                devices = rest_client.get_tenant_devices(
+                    500, 0, 'KMG Transport'
+                )
+                return devices.data
+
+            except ApiException as e:
+                logger.exception(e)
             finally:
                 rest_client.logout()

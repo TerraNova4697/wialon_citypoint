@@ -49,3 +49,10 @@ class CarState(Base):
     car_id: Mapped[int] = mapped_column(ForeignKey('cars.id'))
     car: Mapped['Car'] = relationship(back_populates='car_states')
 
+
+class Device(Base):
+    __tablename__ = 'devices'
+
+    id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    customer_id: Mapped[str] = mapped_column(String(128))
+    name: Mapped[str] = mapped_column(String(128))

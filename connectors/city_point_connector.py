@@ -19,8 +19,7 @@ from tm_source.abs_transport_src import AbstractTransportSource
 from mqtt_client.abs_destination import AbstractDestination
 
 from database.operations import get_all_sensors, add_sensors_if_not_exist, get_fuel_sensors_ids, get_all_cars_ids, \
-    add_transport_if_not_exists, save_unsent_telemetry, get_sensors_by_destination
-
+    add_transport_if_not_exists, save_unsent_telemetry, get_sensors_by_destination, get_car_by_id
 
 logger = logging.getLogger(os.environ.get('LOGGER'))
 
@@ -116,11 +115,12 @@ class CityPointConnector(AbstractConnector):
                     place=None
                 )
 
-                if not self.rest_client or not self.rest_client.post_alarm(a):
+                car = get_car_by_id(a.car_id)
+
+                if not self.rest_client or not self.rest_client.post_alarm(a, car.name):
                     # TODO: Save to DB.
                     pass
                     # save_unsent_alarm_(a)
-
 
     async def check_transport_with_discreteness(self, discreteness: int):
 

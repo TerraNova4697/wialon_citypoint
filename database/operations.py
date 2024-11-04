@@ -33,6 +33,12 @@ def get_all_cars_ids():
         return list(chain(*res))
 
 
+def get_car_by_id(car_id):
+    with Session() as session:
+        res = session.query(Car).where(Car.id == car_id).scalar()
+        return res
+
+
 def add_sensors_if_not_exist(sensors):
     with Session() as session:
         for sensor in sensors:
