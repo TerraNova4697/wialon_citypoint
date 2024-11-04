@@ -21,6 +21,7 @@ class Car(Base):
     model: Mapped[str] = mapped_column(String(50), nullable=True)
     reg_number: Mapped[str] = mapped_column(String(24), nullable=True)
     is_hidden: Mapped[bool] = mapped_column(Boolean, default=False)
+    source: Mapped[str] = mapped_column(String(32))
     car_states: Mapped[List['CarState']] = relationship(back_populates='car')
 
 

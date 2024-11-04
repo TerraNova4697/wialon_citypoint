@@ -83,7 +83,8 @@ class WialonConnector(AbstractConnector):
                     "name": transport['nm'],
                     'department': department[0] if department else None,
                     'model': model[0] if model else None,
-                    'reg_number': reg_number[0] if reg_number else None
+                    'reg_number': reg_number[0] if reg_number else None,
+                    'source': 'wialon'
                 })
             add_wialon_transport_if_not_exists(transport_props)
             self.load_transport_in_memory(transports)

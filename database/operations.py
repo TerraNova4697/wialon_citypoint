@@ -78,7 +78,8 @@ def add_transport_if_not_exists(transports):
                         name=f"{reg_number} {model}",
                         model=model,
                         reg_number=reg_number,
-                        is_hidden=transport.get('attributes', {}).get('IsHidden')
+                        is_hidden=transport.get('attributes', {}).get('IsHidden'),
+                        source='city_point'
                     ))
                     session.commit()
             except (IntegrityError, UniqueViolation) as e:
