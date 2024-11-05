@@ -10,6 +10,7 @@ from copy import copy
 from tb_gateway_mqtt import TBGatewayMqttClient
 from tb_rest_client import RestClientPE
 from urllib3.exceptions import NameResolutionError
+from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from connectors.abs_connector import AbstractConnector
 from mqtt_client.cuba_rest_client import CubaRestClient
@@ -51,7 +52,7 @@ class CityPointConnector(AbstractConnector):
     async def start_loop(self):
         try:
             res = self.source.auth()
-        except (ConnectionError, NameResolutionError, TimeoutError) as exc:
+        except (RequestsConnectionError, NameResolutionError, TimeoutError) as exc:
             res = False
             logger.exception(f"Exception trying to authenticate: {exc}")
         while not res:
@@ -74,7 +75,7 @@ class CityPointConnector(AbstractConnector):
             self.data['fuel_sensors_id'] = get_sensors_by_destination(100)
             self.data['ignition_sensors_id'] = get_sensors_by_destination(1)
             self.data['light_sensors_id'] = get_sensors_by_destination(1300)
-        except (ConnectionError, NameResolutionError, TimeoutError) as exc:
+        except (RequestsConnectionError, NameResolutionError, TimeoutError) as exc:
             logger.exception(f"Exception trying to fetch sensors: {exc}")
             await asyncio.sleep(10)
             await self.fetch_sensors()
@@ -84,7 +85,7 @@ class CityPointConnector(AbstractConnector):
             await asyncio.sleep(discreteness)
             try:
                 notifications = self.source.get_messages()
-            except (ConnectionError, NameResolutionError, TimeoutError) as exc:
+            except (RequestsConnectionError, NameResolutionError, TimeoutError) as exc:
                 logger.exception(f"Exception trying to fetch notifications: {exc}")
                 await asyncio.sleep(10)
                 continue
@@ -128,7 +129,7 @@ class CityPointConnector(AbstractConnector):
         while True:
             try:
                 transports_result = self.source.get_transport_list()
-            except (ConnectionError, NameResolutionError, TimeoutError) as exc:
+            except (RequestsConnectionError, NameResolutionError, TimeoutError) as exc:
                 logger.exception(f"Exception trying to fetch transport: {exc}")
                 await asyncio.sleep(10)
                 continue
@@ -153,14 +154,14 @@ class CityPointConnector(AbstractConnector):
 
             try:
                 transports = self.source.get_transports(query_filter=','.join(f'"{str(car_id)}"' for car_id in self.data['transports_id']))
-            except (ConnectionError, NameResolutionError, TimeoutError) as exc:
+            except (RequestsConnectionError, NameResolutionError, TimeoutError) as exc:
                 logger.exception(f"Exception trying to fetch transport stated: {exc}")
                 await asyncio.sleep(10)
                 continue
 
             telemetry = []
-            logger.info(f"Fetched {len(transports['data'])} units")
-            for transport in transports['data']:
+            logger.info(f"Fetched {len(transports.get('data', []))} units")
+            for transport in transports.get('data', []):
 
                 if int(transport['id']) in self.data['transports_id']:
                     fuel_sensor = [

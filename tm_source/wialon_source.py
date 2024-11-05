@@ -3,6 +3,8 @@ import json
 import os
 import logging
 
+from urllib3.exceptions import NameResolutionError
+
 from tm_source.abs_transport_src import AbstractTransportSource
 
 
@@ -17,6 +19,7 @@ class WialonSource(AbstractTransportSource):
         self.access_token: str | None = None
         self.token_type: str | None = None
         self.user_id: str | None = None
+        self.session = requests.session()
         self.BASE_URL: str = 'https://hst-api.wialon.com/wialon/ajax.html?svc='
 
     def get_velocity_zones(self):
@@ -35,8 +38,12 @@ class WialonSource(AbstractTransportSource):
             "from": 0,
             "to": 0
         }
-        res = requests.get(
-            self.BASE_URL + 'core/search_items&params=' + self.convert_params(params) + f"&sid={self.access_token}")
+        try:
+            res = self.session.get(
+                self.BASE_URL + 'core/search_items&params=' + self.convert_params(params) + f"&sid={self.access_token}")
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
         logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
@@ -64,7 +71,11 @@ class WialonSource(AbstractTransportSource):
             "from": 0,
             "to": 0
         }
-        res = requests.get(self.BASE_URL + 'core/search_items&params=' + self.convert_params(params) + f"&sid={self.access_token}")
+        try:
+            res = self.session.get(self.BASE_URL + 'core/search_items&params=' + self.convert_params(params) + f"&sid={self.access_token}")
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
         logger.warning(f"Could not fetch transport list. Status code: {res.status_code}")
@@ -86,7 +97,11 @@ class WialonSource(AbstractTransportSource):
             "from": 0,
             "to": 0
         }
-        res = requests.get(self.BASE_URL + 'core/search_items&params=' + self.convert_params(params) + f"&sid={self.access_token}")
+        try:
+            res = self.session.get(self.BASE_URL + 'core/search_items&params=' + self.convert_params(params) + f"&sid={self.access_token}")
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             logger.info(res.json())
             return res.json()
@@ -104,8 +119,12 @@ class WialonSource(AbstractTransportSource):
             "flagsMask": 65281,
             'loadCount': 500
         }
-        res = requests.get(
-            self.BASE_URL + "messages/load_last&params=" + self.convert_params(params) + f"&sid={self.access_token}")
+        try:
+            res = self.session.get(
+                self.BASE_URL + "messages/load_last&params=" + self.convert_params(params) + f"&sid={self.access_token}")
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
         logger.warning(f"Could not fetch violations. Status code: {res.status_code}")
@@ -119,9 +138,13 @@ class WialonSource(AbstractTransportSource):
             "indexFrom": 0,
             "indexTo": 9
         }
-        res = requests.get(
-            self.BASE_URL + "messages/get_messages&params=" + self.convert_params(
-                params) + f"&sid={self.access_token}")
+        try:
+            res = self.session.get(
+                self.BASE_URL + "messages/get_messages&params=" + self.convert_params(
+                    params) + f"&sid={self.access_token}")
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         print(res.status_code)
         print(res.json())
 
@@ -133,7 +156,11 @@ class WialonSource(AbstractTransportSource):
             "measure": "si",
             "detalization": 55
         }
-        res = requests.get(self.BASE_URL + "events/check_updates&params=" + self.convert_params(params) + f"&sid={self.access_token}")
+        try:
+            res = self.session.get(self.BASE_URL + "events/check_updates&params=" + self.convert_params(params) + f"&sid={self.access_token}")
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
         logger.warning(f"Could not fetch messages. Status code: {res.status_code}")
@@ -145,7 +172,11 @@ class WialonSource(AbstractTransportSource):
         params = {
             "itemId": 30,
         }
-        res = requests.get(self.BASE_URL + f'resource/get_notification_data&params={self.convert_params(params)}' + f"&sid={self.access_token}")
+        try:
+            res = self.session.get(self.BASE_URL + f'resource/get_notification_data&params={self.convert_params(params)}' + f"&sid={self.access_token}")
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
         logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
@@ -154,12 +185,16 @@ class WialonSource(AbstractTransportSource):
     def read_zones(self):
         if not self.is_connected():
             self.auth()
-        res = requests.get(self.BASE_URL + 'core/search_items&params&params={}' + f"&sid={self.access_token}")
+        res = self.session.get(self.BASE_URL + 'core/search_items&params&params={}' + f"&sid={self.access_token}")
 
     def unload(self):
         if not self.is_connected():
             self.auth()
-        res = requests.get(self.BASE_URL + 'messages/unload&params={}' + f"&sid={self.access_token}")
+        try:
+            res = self.session.get(self.BASE_URL + 'messages/unload&params={}' + f"&sid={self.access_token}")
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
         logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
@@ -179,7 +214,11 @@ class WialonSource(AbstractTransportSource):
                 }
             ]
         }
-        res = requests.get(self.BASE_URL + 'core/update_data_flags&params=' + self.convert_params(params) + f"&sid={self.access_token}")
+        try:
+            res = self.session.get(self.BASE_URL + 'core/update_data_flags&params=' + self.convert_params(params) + f"&sid={self.access_token}")
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
         logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
@@ -189,7 +228,11 @@ class WialonSource(AbstractTransportSource):
     def get_avl_event(self):
         if not self.is_connected():
             self.auth()
-        res = requests.get(f'https://hst-api.wialon.com/avl_evts?sid={self.access_token}')
+        try:
+            res = self.session.get(f'https://hst-api.wialon.com/avl_evts?sid={self.access_token}')
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
         logger.warning(f"Could not fetch avl events. Status code: {res.status_code}")
@@ -204,7 +247,11 @@ class WialonSource(AbstractTransportSource):
 
     def auth(self):
         params = {"token": self.refresh_token}
-        res = requests.get(self.BASE_URL + 'token/login&params=' + json.dumps(params))
+        try:
+            res = self.session.get(self.BASE_URL + 'token/login&params=' + json.dumps(params))
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             self.update_token(res.json())
             return True

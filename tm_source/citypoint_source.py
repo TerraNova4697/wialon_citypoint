@@ -2,6 +2,8 @@ import os
 import logging
 from time import sleep
 
+from urllib3.exceptions import NameResolutionError
+
 from tm_source.abs_transport_src import AbstractTransportSource
 from datetime import datetime, timedelta
 import requests
@@ -22,6 +24,7 @@ class CityPointSource(AbstractTransportSource):
         self.expires_at: datetime | None = None
         self.token_type: str | None = None
         self.user_id: str | None = None
+        self.session = requests.session()
         self.BASE_URL: str = "https://api.citypoint.ru/v2.1"
         self.AUTH_URL: str = "/oauth/token"
         self.TS_INFO: str = f"/cars/states?fields[carState]=Lon,Lat,Velocity,RecordDate,LattestGpsDate,Sensors.value,Sensors.calibration"
@@ -42,10 +45,14 @@ class CityPointSource(AbstractTransportSource):
             "Accept": "application/vnd.api+json",
             "Authorization": f"{self.token_type} {self.access_token}"
         }
-        res = requests.get(
-            url=self.BASE_URL + f"/user/{self.user_id}" + self.SENSORS_INFO,
-            headers=headers
-        )
+        try:
+            res = self.session.get(
+                url=self.BASE_URL + f"/user/{self.user_id}" + self.SENSORS_INFO,
+                headers=headers
+            )
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
         logger.warning(f"Could not fetch geo-zones. Status code: {res.status_code}")
@@ -62,10 +69,14 @@ class CityPointSource(AbstractTransportSource):
             "Accept": "application/vnd.api+json",
             "Authorization": f"{self.token_type} {self.access_token}"
         }
-        res = requests.get(
-            url=self.BASE_URL + self.SENSORS_INFO,
-            headers=headers
-        )
+        try:
+            res = self.session.get(
+                url=self.BASE_URL + self.SENSORS_INFO,
+                headers=headers
+            )
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
         logger.warning(f"Could not fetch sensors. Status code: {res.status_code}")
@@ -77,10 +88,14 @@ class CityPointSource(AbstractTransportSource):
             "Accept": "application/vnd.api+json",
             "Authorization": f"{self.token_type} {self.access_token}"
         }
-        res = requests.get(
-            url=self.BASE_URL + f"/user/{self.user_id}" + self.TS_LIST,
-            headers=headers
-        )
+        try:
+            res = self.session.get(
+                url=self.BASE_URL + f"/user/{self.user_id}" + self.TS_LIST,
+                headers=headers
+            )
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
         logger.warning(f"Could not fetch transport list. Status code: {res.status_code}")
@@ -92,11 +107,14 @@ class CityPointSource(AbstractTransportSource):
             "Accept": "application/vnd.api+json",
             "Authorization": f"{self.token_type} {self.access_token}"
         }
-
-        res = requests.get(
-            url=self.BASE_URL + f"/user/{self.user_id}" + self.TS_INFO,
-            headers=headers
-        )
+        try:
+            res = self.session.get(
+                url=self.BASE_URL + f"/user/{self.user_id}" + self.TS_INFO,
+                headers=headers
+            )
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
         logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
@@ -111,13 +129,17 @@ class CityPointSource(AbstractTransportSource):
         self.user_id = token.get('user_id')
 
     def auth(self):
-        res = requests.post(
-            url=self.BASE_URL + self.AUTH_URL,
-            data=f"grant_type=password&client_id={self.client_id}&client_secret={self.secret_key}&username={self.login}&password={self.password}",
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded"
-            }
-        )
+        try:
+            res = requests.post(
+                url=self.BASE_URL + self.AUTH_URL,
+                data=f"grant_type=password&client_id={self.client_id}&client_secret={self.secret_key}&username={self.login}&password={self.password}",
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
+            )
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             self.update_token(res.json())
             return True
@@ -127,13 +149,17 @@ class CityPointSource(AbstractTransportSource):
 
 
     def get_access_token(self):
-        res = requests.post(
-            url=self.BASE_URL + self.AUTH_URL,
-            data=f"grant_type=refresh_token&client_id={self.client_id}&client_secret={self.secret_key}&refresh_token={self.refresh_token}",
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded"
-            }
-        )
+        try:
+            res = requests.post(
+                url=self.BASE_URL + self.AUTH_URL,
+                data=f"grant_type=refresh_token&client_id={self.client_id}&client_secret={self.secret_key}&refresh_token={self.refresh_token}",
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
+            )
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             self.update_token(res.json())
             return True
@@ -146,10 +172,14 @@ class CityPointSource(AbstractTransportSource):
             "Accept": "application/vnd.api+json",
             "Authorization": f"{self.token_type} {self.access_token}"
         }
-        res = requests.get(
-            url=self.BASE_URL + f"/user/{self.user_id}" + self.MESSAGES,
-            headers=headers
-        )
+        try:
+            res = self.session.get(
+                url=self.BASE_URL + f"/user/{self.user_id}" + self.MESSAGES,
+                headers=headers
+            )
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
         logger.warning(f"Could not fetch messages. Status code: {res.status_code}")

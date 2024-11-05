@@ -2,8 +2,10 @@ import asyncio
 import json
 import os
 import logging
+from http.client import RemoteDisconnected
 
 from urllib3.exceptions import NameResolutionError
+from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from connectors.abs_connector import AbstractConnector
 from mqtt_client.abs_destination import AbstractDestination
@@ -33,7 +35,7 @@ class WialonConnector(AbstractConnector):
     async def start_loop(self):
         try:
             res = self.source.auth()
-        except (ConnectionError, NameResolutionError, TimeoutError) as exc:
+        except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
             logger.exception(f"Exception trying to authenticate: {exc}")
             res = False
         while not res:
@@ -54,7 +56,7 @@ class WialonConnector(AbstractConnector):
             logger.info('Fetching states')
             try:
                 data = self.source.get_avl_event()
-            except (ConnectionError, NameResolutionError, TimeoutError) as exc:
+            except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
                 logger.exception(f"Exception trying to fetch transport states: {exc}")
                 await asyncio.sleep(10)
                 continue
@@ -75,6 +77,7 @@ class WialonConnector(AbstractConnector):
 
     async def parse_violation(self, event):
         if event['d']['f'] == 1537:
+            logger.warning(event['d']['p']['task_evt_name'])
             a = Alarm(
                 id=event['i'],
                 title=event['d']['et'],
@@ -115,7 +118,7 @@ class WialonConnector(AbstractConnector):
             logger.info('Fetching states')
             try:
                 data = self.source.get_transports()
-            except (ConnectionError, NameResolutionError, TimeoutError) as exc:
+            except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
                 logger.exception(f"Exception trying to fetch transport states: {exc}")
                 await asyncio.sleep(10)
                 continue
@@ -148,7 +151,7 @@ class WialonConnector(AbstractConnector):
             try:
                 events = self.source.get_messages()
                 logger.info(json.dumps(events))
-            except (ConnectionError, NameResolutionError, TimeoutError) as exc:
+            except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
                 logger.exception(f"Exception trying to fetch updates: {exc}")
                 await asyncio.sleep(10)
                 continue
@@ -159,7 +162,7 @@ class WialonConnector(AbstractConnector):
         while True:
             try:
                 transports_result = self.source.get_transport_list()
-            except (ConnectionError, NameResolutionError, TimeoutError) as exc:
+            except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
                 logger.exception(f"Exception trying to fetch transport list: {exc}")
                 await asyncio.sleep(10)
                 continue
