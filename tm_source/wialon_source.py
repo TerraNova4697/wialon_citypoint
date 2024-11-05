@@ -82,36 +82,61 @@ class WialonSource(AbstractTransportSource):
                 "propType": "avl_unit"
             },
             "force": 1,
-            "flags": 4611686018427387903,
+            "flags": 15729697,
             "from": 0,
             "to": 0
         }
         res = requests.get(self.BASE_URL + 'core/search_items&params=' + self.convert_params(params) + f"&sid={self.access_token}")
         if 200 <= res.status_code < 300:
+            logger.info(res.json())
             return res.json()
         logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
         logger.warning(f"Message: {res.json()}")
+
+    def load_violations_by_id(self, start_ts, item_id):
+        if not self.is_connected():
+            self.auth()
+        params = {
+            "itemId": item_id,
+            "lastTime": start_ts,
+            "lastCount": 500,
+            "flags": 1537,
+            "flagsMask": 65281,
+            'loadCount': 500
+        }
+        res = requests.get(
+            self.BASE_URL + "messages/load_last&params=" + self.convert_params(params) + f"&sid={self.access_token}")
+        if 200 <= res.status_code < 300:
+            return res.json()
+        logger.warning(f"Could not fetch violations. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
+        return res.json()
+
+    def get_violations(self):
+        if not self.is_connected():
+            self.auth()
+        params = {
+            "indexFrom": 0,
+            "indexTo": 9
+        }
+        res = requests.get(
+            self.BASE_URL + "messages/get_messages&params=" + self.convert_params(
+                params) + f"&sid={self.access_token}")
+        print(res.status_code)
+        print(res.json())
 
     def get_messages(self):
         if not self.is_connected():
             self.auth()
         params = {
-            "spec": {
-                "itemsType": "avl_resource",
-                "propName": "avl_resource,notifications,drivers",
-                "propValueMask": "*,*,*",
-                "sortType": "sys_name",
-                "propType": "avl_resource,propitemname,propitemname"
-            },
-            "force": 1,
-            "flags": 1281,
-            "from": 0,
-            "to": 0
+            "lang": "ru",
+            "measure": "si",
+            "detalization": 55
         }
-        res = requests.get(self.BASE_URL + "core/search_items&params=" + self.convert_params(params) + f"&sid={self.access_token}")
+        res = requests.get(self.BASE_URL + "events/check_updates&params=" + self.convert_params(params) + f"&sid={self.access_token}")
         if 200 <= res.status_code < 300:
             return res.json()
-        logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
+        logger.warning(f"Could not fetch messages. Status code: {res.status_code}")
         logger.warning(f"Message: {res.json()}")
 
     def get_messages_from_session(self):
@@ -137,29 +162,39 @@ class WialonSource(AbstractTransportSource):
         res = requests.get(self.BASE_URL + 'messages/unload&params={}' + f"&sid={self.access_token}")
         if 200 <= res.status_code < 300:
             return res.json()
-        return res.json()
         logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
         logger.warning(f"Message: {res.json()}")
+        return res.json()
 
-    def load_messages(self):
+    def manage_session_units(self, item_ids):
         if not self.is_connected():
             self.auth()
         params = {
-            "itemId":30,
-            "timeFrom":1727722800,
-            "timeTo":1730314800,
-            "flags":1,
-            "flagsMask":65281,
-            "loadCount":3
+            "spec":[
+                {
+                    "type": "col",
+                    "data": item_ids,
+                    "flags": 32,
+                    "mode": 0
+                }
+            ]
         }
-        res = requests.get(self.BASE_URL + 'messages/load_interval&params=' + self.convert_params(params) + f"&sid={self.access_token}")
-        print(res.status_code)
-        print(res.json())
+        res = requests.get(self.BASE_URL + 'core/update_data_flags&params=' + self.convert_params(params) + f"&sid={self.access_token}")
         if 200 <= res.status_code < 300:
             return res.json()
-        return res.json()
         logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
         logger.warning(f"Message: {res.json()}")
+        return res.json()
+
+    def get_avl_event(self):
+        if not self.is_connected():
+            self.auth()
+        res = requests.get(f'https://hst-api.wialon.com/avl_evts?sid={self.access_token}')
+        if 200 <= res.status_code < 300:
+            return res.json()
+        logger.warning(f"Could not fetch avl events. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
+        return res.json()
 
     def is_connected(self):
         if not self.access_token:

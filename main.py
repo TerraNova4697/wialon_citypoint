@@ -1,12 +1,15 @@
 import asyncio
 import os
 import logging
+from datetime import datetime
 
 from dotenv import load_dotenv
 from tb_gateway_mqtt import TBGatewayMqttClient
 
 from config import config_log
+from database.operations import create_runtime
 from mqtt_client.cuba_mqtt_client import CubaMqttClient
+from mqtt_client.cuba_rest_client import CubaRestClient
 
 load_dotenv()
 
@@ -31,18 +34,28 @@ async def main():
         logger.info('Connected to Core')
     destination = CubaMqttClient(mqtt_client)
 
+    rest_client = CubaRestClient()
+
     cp_source = CityPointSource(
         login=os.environ.get("CITY_POINT_LOGIN"),
         password=os.environ.get("CITY_POINT_PASSWORD"),
         secret_key=os.environ.get("CITY_POINT_SECRET_KEY"),
         client_id=os.environ.get("CITY_POINT_CLIENT_ID")
     )
-    cpc = CityPointConnector(cp_source, destination)
+    cpc = CityPointConnector(
+        source=cp_source,
+        destination=destination,
+        rest_client=rest_client
+    )
 
     wialon_source = WialonSource(
         secret_key=os.environ.get("WIALON_REFRESH_TOKEN")
     )
-    wialon_connector = WialonConnector(wialon_source, destination)
+    wialon_connector = WialonConnector(
+        source=wialon_source,
+        destination=destination,
+        rest_client=rest_client
+    )
 
     asyncio.create_task(wialon_connector.start_loop())
     asyncio.create_task(cpc.start_loop())
@@ -55,5 +68,12 @@ async def main():
 if __name__ == '__main__':
     config_log()
     db_init()
-    asyncio.run(main())
+
+    start_ts = datetime.timestamp(datetime.now())
+    try:
+        asyncio.run(main())
+    finally:
+        end_ts = datetime.timestamp(datetime.now())
+        create_runtime(start_ts=start_ts, end_ts=end_ts)
+
 

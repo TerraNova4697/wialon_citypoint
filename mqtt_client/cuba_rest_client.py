@@ -23,9 +23,11 @@ class CubaRestClient:
                 rest_client.login(self.CUBA_USER, self.CUBA_PASSWORD)
                 # get device by name
                 device = rest_client.get_tenant_device(device_name)
-                alarm = alarm.to_rest_object()
+                logger.warning(f"ALARM. {device_name}: {alarm}")
+                alarm = alarm.to_rest_object(device.id)
                 # Set device id as attribute
-                alarm.device = device.id
+                # alarm.device = device.id
+                # alarm.originator = device.id
                 rest_client.save_alarm(alarm)
                 return True
 

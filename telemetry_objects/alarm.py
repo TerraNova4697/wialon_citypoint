@@ -1,4 +1,4 @@
-from tb_rest_client.models.models_pe import Alarm as RestAlarm
+from tb_rest_client.models.models_pe import Alarm as RestAlarm, DeviceId
 
 
 class Alarm:
@@ -13,9 +13,9 @@ class Alarm:
             record_date,
             date_of_creation,
             car_id,
-            driver_first_name,
-            driver_last_name,
-            place
+            driver_first_name = '',
+            driver_last_name = '',
+            place = ''
     ):
         self.id = id
         self.title = title
@@ -46,7 +46,7 @@ class Alarm:
             'place': self.place
         }
 
-    def to_rest_object(self):
+    def to_rest_object(self, device_id: DeviceId):
         return RestAlarm(
             type=self.title,
             name=self.title,
@@ -59,5 +59,7 @@ class Alarm:
             propagate=True,
             propagate_to_tenant=True,
             propagate_relation_types=['string'],
-            details={'message': self.message}
+            details={'message': self.message},
+            originator=device_id,
+            status='ACTIVE_UNACK'
         )

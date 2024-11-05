@@ -57,3 +57,11 @@ class Device(Base):
     id: Mapped[str] = mapped_column(String(128), primary_key=True)
     customer_id: Mapped[str] = mapped_column(String(128))
     name: Mapped[str] = mapped_column(String(128))
+
+
+class RunTime(Base):
+    __tablename__ = 'runtimes'
+
+    id: Mapped[int] = mapped_column(Integer, autoincrement=True, primary_key=True)
+    start_ts: Mapped[int] = mapped_column(Integer)
+    end_ts: Mapped[int] = mapped_column(Integer)
