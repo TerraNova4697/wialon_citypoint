@@ -58,7 +58,6 @@ class WialonConnector(AbstractConnector):
                 logger.exception(f"Exception trying to fetch transport states: {exc}")
                 await asyncio.sleep(10)
                 continue
-            print(data)
             logger.info(f"Fetched {len(data.get('events', []))} events")
 
 
