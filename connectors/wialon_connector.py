@@ -78,7 +78,7 @@ class WialonConnector(AbstractConnector):
             a = Alarm(
                 id=event['i'],
                 title=event['d']['et'],
-                message=event['d']['p']['ACTIVE_UNACK'],
+                message=event['d']['p']['task_evt_name'],
                 level=7,
                 latitude=event['d']['y'],
                 longitude=event['d']['x'],
