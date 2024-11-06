@@ -59,7 +59,7 @@ class Alarm:
             propagate=True,
             propagate_to_tenant=True,
             propagate_relation_types=['string'],
-            details={'message': self.message},
+            details={'message': self.message.replace('%ZONE%', self.place)},
             originator=device_id,
             status='ACTIVE_UNACK'
         )

@@ -25,9 +25,7 @@ class CubaRestClient:
                 device = rest_client.get_tenant_device(device_name)
                 logger.warning(f"ALARM. {device_name}: {alarm}")
                 alarm = alarm.to_rest_object(device.id)
-                # Set device id as attribute
-                # alarm.device = device.id
-                # alarm.originator = device.id
+                logger.warning(f"{alarm.name} | {alarm.type} | {alarm.details}")
                 rest_client.save_alarm(alarm)
                 return True
 

@@ -159,8 +159,6 @@ class CityPointConnector(AbstractConnector):
                 await asyncio.sleep(10)
                 continue
 
-            telemetry = []
-            logger.info(f"Fetched {len(transports.get('data', []))} units")
             for transport in transports.get('data', []):
 
                 if int(transport['id']) in self.data['transports_id']:
@@ -173,8 +171,10 @@ class CityPointConnector(AbstractConnector):
                     transport_model = self.transport_map.get(str(transport['id']))
                     model = transport_model.get('attributes', {}).get('Model', '')
                     reg_number = transport_model.get('attributes', {}).get('RegNumber', '').replace('_', ' ')
+                    ts = datetime.strptime(transport['attributes']['RecordDate'], time_format) + timedelta(hours=5)
+                    last_conn = datetime.strptime(transport['attributes']['LattestGpsDate'], time_format) + timedelta(hours=5)
                     t = Transport(
-                        ts=datetime.timestamp(datetime.strptime(transport['attributes']['RecordDate'], time_format)),
+                        ts=datetime.timestamp(ts),
                         is_sent=False,
                         latitude=transport['attributes']['Lat'],
                         longitude=transport['attributes']['Lon'],
@@ -183,7 +183,7 @@ class CityPointConnector(AbstractConnector):
                         car_id=int(transport['id']),
                         ignition=ignition[0]['value'],
                         light=light[0]['value'],
-                        last_conn=datetime.timestamp(datetime.strptime(transport['attributes']['LattestGpsDate'], time_format)),
+                        last_conn=datetime.timestamp(last_conn),
                         name=f"{reg_number} {model}"
                     )
 

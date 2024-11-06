@@ -49,6 +49,10 @@ class WialonSource(AbstractTransportSource):
         logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
         logger.warning(f"Message: {res.json()}")
 
+    def reinitialize_session(self, transport_ids):
+        self.session = requests.session()
+        self.manage_session_units(transport_ids)
+
     def get_planned_routes(self):
         pass
 

@@ -44,11 +44,8 @@ class WialonConnector(AbstractConnector):
             await self.start_loop()
 
         wialon_transport_ids = get_transport_ids('wialon')
-        # self.source.manage_session_units('remove', wialon_transport_ids)
-        # asyncio.create_task(self.fetch_notifications(60))
         asyncio.create_task(self.check_transport_with_discreteness(86400))
         self.source.manage_session_units(wialon_transport_ids)
-        # asyncio.create_task(self.fetch_transport_states(16))
         asyncio.create_task(self.get_avls(2))
 
     async def get_avls(self, discreteness: int):
@@ -57,11 +54,10 @@ class WialonConnector(AbstractConnector):
             try:
                 data = self.source.get_avl_event()
             except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
+                self.source.reinitialize_session(get_transport_ids('wialon'))
                 logger.exception(f"Exception trying to fetch transport states: {exc}")
                 await asyncio.sleep(10)
                 continue
-            logger.info(f"Fetched {len(data.get('events', []))} events")
-
 
             for event in data.get('events', []):
                 try:
@@ -78,10 +74,11 @@ class WialonConnector(AbstractConnector):
     async def parse_violation(self, event):
         if event['d']['f'] == 1537:
             logger.warning(event['d']['p']['task_evt_name'])
+            logger.warning(event)
             a = Alarm(
                 id=event['i'],
-                title=event['d']['et'],
-                message=event['d']['p']['task_evt_name'],
+                title=event['d']['p']['task_evt_name'],
+                message=event['d']['et'],
                 level=7,
                 latitude=event['d']['y'],
                 longitude=event['d']['x'],
