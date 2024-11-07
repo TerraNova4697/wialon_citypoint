@@ -163,8 +163,10 @@ class CityPointConnector(AbstractConnector):
                 continue
 
             for transport in transports.get('data', []):
-
                 if int(transport['id']) in self.data['transports_id']:
+                    latest_gps_date = datetime.strptime(transport['attributes']['LattestGpsDate'], time_format) + timedelta(hours=5)
+                    if (datetime.now() - latest_gps_date).seconds > 30:
+                        continue
                     fuel_sensor = [
                         sensor for sensor in transport['attributes']['Sensors'] if sensor['id'] in self.data['fuel_sensors_id']
                     ]
@@ -192,7 +194,6 @@ class CityPointConnector(AbstractConnector):
 
                     if not self.destination or not self.destination.send_data(*t.form_mqtt_message()):
                         save_unsent_telemetry(t)
-
 
             await asyncio.sleep(discreteness)
 

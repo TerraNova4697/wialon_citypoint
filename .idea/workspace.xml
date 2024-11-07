@@ -9,9 +9,7 @@
       <change beforePath="$PROJECT_DIR$/connectors/city_point_connector.py" beforeDir="false" afterPath="$PROJECT_DIR$/connectors/city_point_connector.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/connectors/wialon_connector.py" beforeDir="false" afterPath="$PROJECT_DIR$/connectors/wialon_connector.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cptest.py" beforeDir="false" afterPath="$PROJECT_DIR$/cptest.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/database/operations.py" beforeDir="false" afterPath="$PROJECT_DIR$/database/operations.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mqtt_client/cuba_rest_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/mqtt_client/cuba_rest_client.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tm_source/wialon_source.py" beforeDir="false" afterPath="$PROJECT_DIR$/tm_source/wialon_source.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tm_source/citypoint_source.py" beforeDir="false" afterPath="$PROJECT_DIR$/tm_source/citypoint_source.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/wtest.py" beforeDir="false" afterPath="$PROJECT_DIR$/wtest.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

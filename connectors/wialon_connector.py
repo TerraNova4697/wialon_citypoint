@@ -46,8 +46,8 @@ class WialonConnector(AbstractConnector):
 
         wialon_transport_ids = get_transport_ids('wialon')
         asyncio.create_task(self.check_transport_with_discreteness(86400))
-        if runtime := get_last_runtime():
-            asyncio.create_task(self.get_states_since(runtime))
+        # if runtime := get_last_runtime():
+        #     asyncio.create_task(self.get_states_since(runtime))
         self.source.manage_session_units(wialon_transport_ids)
         asyncio.create_task(self.get_avls(2))
 
@@ -96,9 +96,9 @@ class WialonConnector(AbstractConnector):
 
             for event in data.get('events', []):
                 try:
-                    if event['d']['tp'] == 'ud':
+                    if event['d'].get('tp') == 'ud':
                         await self.parse_transport_state(event)
-                    elif event['d']['tp'] == 'evt':
+                    elif event['d'].get('tp') == 'evt':
                         await self.parse_violation(event)
                 except KeyError as e:
                     logger.exception(event)

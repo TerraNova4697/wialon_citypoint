@@ -27,7 +27,7 @@ class CityPointSource(AbstractTransportSource):
         self.session = requests.session()
         self.BASE_URL: str = "https://api.citypoint.ru/v2.1"
         self.AUTH_URL: str = "/oauth/token"
-        self.TS_INFO: str = f"/cars/states?fields[carState]=Lon,Lat,Velocity,RecordDate,LattestGpsDate,Sensors.value,Sensors.calibration"
+        self.TS_INFO: str = f"/cars/states?fields[carState]=Lon,Lat,Velocity,RecordDate,LattestGpsDate,LattestConnectionTime,Sensors.value,Sensors.calibration"
         self.TS_LIST: str = f"/cars?filter[car]=eq(IsHidden,0)"
         self.SENSORS_INFO: str = f"/sensors"
         self.MESSAGES: str = '/notifications?include=Driver,Zone,Car&page[limit]=10'
