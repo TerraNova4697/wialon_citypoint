@@ -225,7 +225,7 @@ class CityPointConnector(AbstractConnector):
                         ignition=ignition[0]['value'],
                         light=light[0]['value'],
                         last_conn=datetime.timestamp(last_conn),
-                        name=f"{reg_number} {model}"
+                        name=get_car_by_id(int(transport['id'])).name
                     )
 
                     if not self.destination or not self.destination.send_data(*t.form_mqtt_message()):

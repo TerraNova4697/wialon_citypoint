@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import logging
+import re
 from http.client import RemoteDisconnected
 from datetime import datetime
 
@@ -207,12 +208,15 @@ class WialonConnector(AbstractConnector):
                 department = [field['v'] for field in transport['pflds'].values() if field['n'] == 'vehicle_type']
                 model =[field['v'] for field in transport['pflds'].values() if field['n'] == 'brand']
                 reg_number = [field['v'] for field in transport['pflds'].values() if field['n'] == 'color']
+                if len(reg_number) == 0:
+                    continue
+                reg_number = re.sub('[_\-|\s]', '', reg_number[0])
                 transport_props.append({
                     "id": transport['id'],
-                    "name": transport['nm'],
+                    "name": reg_number,
                     'department': department[0] if department else None,
                     'model': model[0] if model else None,
-                    'reg_number': reg_number[0] if reg_number else None,
+                    'reg_number': reg_number,
                     'source': 'wialon'
                 })
             add_wialon_transport_if_not_exists(transport_props)

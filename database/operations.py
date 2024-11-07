@@ -1,6 +1,7 @@
 from itertools import chain
 import logging
 import os
+import re
 
 from sqlalchemy.exc import IntegrityError, MultipleResultsFound, NoResultFound
 from psycopg2.errors import UniqueViolation
@@ -26,9 +27,25 @@ def get_fuel_sensors_ids():
         return list(chain(*res))
 
 
-def get_transport_ids(source):
+def get_history_data(transport_id):
     with Session() as session:
-        return list(chain(*session.query(Car.id).where(Car.source == source).all()))
+        return session.query(CarState).filter(CarState.car_id == transport_id).order_by(CarState.ts.asc()).limit(30).all()
+
+
+def get_transport_ids(source = None):
+    with Session() as session:
+        query = session.query(Car.id)
+        if source:
+            query = query.where(Car.source == source)
+            print(query)
+        return list(chain(*query.all()))
+
+
+def delete_car_states(data):
+    with Session() as session:
+        for car_state in data:
+            session.delete(car_state)
+        session.commit()
 
 
 def get_sensors_by_destination(destination):
@@ -82,10 +99,10 @@ def add_transport_if_not_exists(transports):
             try:
                 if not session.query(exists().where(Car.id == int(transport['id']))).scalar():
                     model = transport.get('attributes', {}).get('Model', '')
-                    reg_number = transport.get('attributes', {}).get('RegNumber', '').replace('_', ' ')
+                    reg_number = re.sub('[_\-|\s]', '', transport.get('attributes', {}).get('RegNumber', ''))
                     session.add(Car(
                         id=int(transport['id']),
-                        name=f"{reg_number} {model}",
+                        name=reg_number,
                         model=model,
                         reg_number=reg_number,
                         is_hidden=transport.get('attributes', {}).get('IsHidden'),
@@ -94,6 +111,12 @@ def add_transport_if_not_exists(transports):
                     session.commit()
             except (IntegrityError, UniqueViolation) as e:
                 pass
+
+
+def get_all_transport_names():
+    with Session() as session:
+        return session.query(Car.id, Car.name).all()
+
 
 def save_unsent_telemetry_list(telemetry: list[Transport]):
     with Session() as session:

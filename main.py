@@ -32,8 +32,9 @@ async def main():
     mqtt_client.connect()
     if mqtt_client.is_connected():
         logger.info('Connected to Core')
-    destination = CubaMqttClient(mqtt_client)
 
+    destination = CubaMqttClient(mqtt_client)
+    asyncio.create_task(destination.send_history_data())
     rest_client = CubaRestClient()
 
     cp_source = CityPointSource(

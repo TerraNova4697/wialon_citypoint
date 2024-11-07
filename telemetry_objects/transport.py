@@ -1,3 +1,4 @@
+from database.models import CarState
 
 
 class Transport:
@@ -49,6 +50,22 @@ class Transport:
             'ts': int(round(self.ts * 1000)),
             'values': data
         }
+
+    @staticmethod
+    def model_to_mqtt_message(car_name, car_state: CarState) -> tuple:
+        return car_name, Transport(
+            ts=car_state.ts,
+            is_sent=False,
+            latitude=car_state.lat,
+            longitude=car_state.lon,
+            velocity=car_state.velocity,
+            fuel_level=car_state.fuel_level,
+            car_id=car_state.car_id,
+            ignition=car_state.ignition,
+            light=car_state.light,
+            last_conn=car_state.last_conn,
+            name=car_name
+        ).__dict__()
 
     def form_mqtt_message(self) -> tuple:
         return self.name, self.__dict__()
