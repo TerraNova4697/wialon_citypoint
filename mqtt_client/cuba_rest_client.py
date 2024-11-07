@@ -33,7 +33,10 @@ class CubaRestClient:
                 logger.exception(e)
                 return False
             finally:
-                rest_client.logout()
+                try:
+                    rest_client.logout()
+                except ApiException as e:
+                    logger.exception(e)
 
     def get_tenant_device(self, device_name):
         with RestClientPE(base_url=self.BASE_URL) as rest_client:
@@ -45,7 +48,10 @@ class CubaRestClient:
             except ApiException as e:
                 logger.exception(e)
             finally:
-                rest_client.logout()
+                try:
+                    rest_client.logout()
+                except ApiException as e:
+                    logger.exception(e)
 
     def get_transport_devices(self):
         with RestClientPE(base_url=self.BASE_URL) as rest_client:
@@ -59,4 +65,7 @@ class CubaRestClient:
             except ApiException as e:
                 logger.exception(e)
             finally:
-                rest_client.logout()
+                try:
+                    rest_client.logout()
+                except ApiException as e:
+                    logger.exception(e)

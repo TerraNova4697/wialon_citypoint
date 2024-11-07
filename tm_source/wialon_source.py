@@ -229,6 +229,29 @@ class WialonSource(AbstractTransportSource):
         logger.warning(f"Message: {res.json()}")
         return res.json()
 
+    def load_historical_messages_by_id(self, item_id, start_ts, end_ts):
+        if not self.is_connected():
+            self.auth()
+        params = {
+            'itemId': item_id,
+            'timeFrom': start_ts,
+            'timeTo': end_ts,
+            'flags': 1,
+            'flagsMask': 65281,
+            'loadCount': 4294967295
+        }
+        try:
+            res = self.session.get(self.BASE_URL + 'messages/load_interval&params=' + json.dumps(params) + f"&sid={self.access_token}")
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
+        if 200 <= res.status_code < 300:
+            return res.json()
+        logger.warning(f"Could not fetch avl events. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
+        return res.json()
+
+
     def get_avl_event(self):
         if not self.is_connected():
             self.auth()

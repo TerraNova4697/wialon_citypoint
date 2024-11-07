@@ -1,12 +1,17 @@
 from itertools import chain
+import logging
+import os
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, MultipleResultsFound, NoResultFound
 from psycopg2.errors import UniqueViolation
 from sqlalchemy.sql import exists
 
 from database.database import Session
 from database.models import Sensor, Car, CarState, RunTime
 from telemetry_objects.transport import Transport
+
+
+logger = logging.getLogger(os.environ.get("LOGGER"))
 
 
 def get_all_sensors():
@@ -97,6 +102,18 @@ def save_unsent_telemetry_list(telemetry: list[Transport]):
                 **data.to_model()
             ))
         session.commit()
+
+
+def get_last_runtime():
+    with Session() as session:
+        try:
+            return session.query(RunTime).order_by(RunTime.id.desc()).first()
+        except MultipleResultsFound as exc:
+            logger.exception(exc)
+            return None
+        except NoResultFound as exc:
+            logger.exception(exc)
+            return None
 
 
 def save_unsent_telemetry(telemetry: Transport):

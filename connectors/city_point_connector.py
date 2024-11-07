@@ -154,6 +154,9 @@ class CityPointConnector(AbstractConnector):
 
             try:
                 transports = self.source.get_transports(query_filter=','.join(f'"{str(car_id)}"' for car_id in self.data['transports_id']))
+                if transports.get('errors'):
+                    await asyncio.sleep(10)
+                    continue
             except (RequestsConnectionError, NameResolutionError, TimeoutError) as exc:
                 logger.exception(f"Exception trying to fetch transport stated: {exc}")
                 await asyncio.sleep(10)

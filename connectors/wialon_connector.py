@@ -3,6 +3,7 @@ import json
 import os
 import logging
 from http.client import RemoteDisconnected
+from datetime import datetime
 
 from urllib3.exceptions import NameResolutionError
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -14,7 +15,7 @@ from telemetry_objects.alarm import Alarm
 from telemetry_objects.transport import Transport
 
 from database.operations import save_unsent_telemetry, add_wialon_transport_if_not_exists, get_transport_ids, \
-    get_car_by_id
+    get_car_by_id, get_last_runtime, save_unsent_telemetry_list
 from tm_source.abs_transport_src import AbstractTransportSource
 
 logger = logging.getLogger(os.environ.get("LOGGER"))
@@ -45,8 +46,42 @@ class WialonConnector(AbstractConnector):
 
         wialon_transport_ids = get_transport_ids('wialon')
         asyncio.create_task(self.check_transport_with_discreteness(86400))
+        if runtime := get_last_runtime():
+            asyncio.create_task(self.get_states_since(runtime))
         self.source.manage_session_units(wialon_transport_ids)
         asyncio.create_task(self.get_avls(2))
+
+    async def get_states_since(self, runtime):
+        start_ts, end_ts = runtime.end_ts, int(datetime.timestamp(datetime.now()))
+
+        try:
+            transport_ids = get_transport_ids('wialon')
+
+            for transport_id in transport_ids:
+                res = self.source.load_historical_messages_by_id(transport_id, start_ts, end_ts)
+                self.source.unload()
+                self.save_trips(transport_id, res.get('messages', []))
+                await asyncio.sleep(10)
+
+        except Exception as exc:
+            logger.exception(exc)
+
+    def save_trips(self, transport_id, trips):
+        for trip in trips:
+            if trip['pos']['s'] > 3:
+                save_unsent_telemetry(Transport(
+                    ts=trip['t'],
+                    is_sent=False,
+                    latitude=trip['pos']['y'],
+                    longitude=trip['pos']['x'],
+                    velocity=trip['pos']['s'],
+                    fuel_level=None,
+                    car_id=transport_id,
+                    ignition=trip['p'].get('io_239'),
+                    light=None,
+                    last_conn=trip['rt'],
+                    name=get_car_by_id(transport_id).name
+                ))
 
     async def get_avls(self, discreteness: int):
         while True:
