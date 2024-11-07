@@ -1,7 +1,7 @@
 services:
 
   app:
-    image: transport_integration:v0.1
+    image: transport_integration:v0.2.1
     container_name: transport_integration
     env_file:
       - .env
