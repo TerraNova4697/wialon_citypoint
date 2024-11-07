@@ -46,8 +46,8 @@ class WialonConnector(AbstractConnector):
 
         wialon_transport_ids = get_transport_ids('wialon')
         asyncio.create_task(self.check_transport_with_discreteness(86400))
-        # if runtime := get_last_runtime():
-        #     asyncio.create_task(self.get_states_since(runtime))
+        if runtime := get_last_runtime():
+            asyncio.create_task(self.get_states_since(runtime))
         self.source.manage_session_units(wialon_transport_ids)
         asyncio.create_task(self.get_avls(2))
 
@@ -67,6 +67,7 @@ class WialonConnector(AbstractConnector):
             logger.exception(exc)
 
     def save_trips(self, transport_id, trips):
+        car = get_car_by_id(transport_id)
         for trip in trips:
             if trip['pos']['s'] > 3:
                 save_unsent_telemetry(Transport(
@@ -80,7 +81,7 @@ class WialonConnector(AbstractConnector):
                     ignition=trip['p'].get('io_239'),
                     light=None,
                     last_conn=trip['rt'],
-                    name=get_car_by_id(transport_id).name
+                    name=car.name
                 ))
 
     async def get_avls(self, discreteness: int):

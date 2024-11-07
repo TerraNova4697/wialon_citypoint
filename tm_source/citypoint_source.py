@@ -120,6 +120,27 @@ class CityPointSource(AbstractTransportSource):
         logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
         logger.warning(f"Message: {res.json()}")
 
+    def load_historical_messages_by_id(self, transport_id, start_ts, end_ts):
+        self.get_token_if_expired()
+        dt = datetime.fromtimestamp(start_ts)
+        formatted_dt = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        headers = {
+            "Accept": "application/vnd.api+json",
+            "Authorization": f"{self.token_type} {self.access_token}"
+        }
+        try:
+            res = self.session.get(
+                url=self.BASE_URL + f"/user/{self.user_id}" + f"/cars/{transport_id}/history/full" + f"?fields[histState]=Velocity,Lat,Lon,RecordDate&filter[histState]=and(gte(Velocity,3),gt(RecordDate,{formatted_dt}))",
+                headers=headers
+            )
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
+        if 200 <= res.status_code < 300:
+            return res.json()
+        logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
+
     def update_token(self, token_params: dict):
         self.token_type = token_params['token_type']
         self.expires_at = datetime.now() + timedelta(seconds=token_params['expires_in'])

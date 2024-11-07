@@ -20,7 +20,8 @@ from tm_source.abs_transport_src import AbstractTransportSource
 from mqtt_client.abs_destination import AbstractDestination
 
 from database.operations import get_all_sensors, add_sensors_if_not_exist, get_fuel_sensors_ids, get_all_cars_ids, \
-    add_transport_if_not_exists, save_unsent_telemetry, get_sensors_by_destination, get_car_by_id
+    add_transport_if_not_exists, save_unsent_telemetry, get_sensors_by_destination, get_car_by_id, get_last_runtime, \
+    get_transport_ids
 
 logger = logging.getLogger(os.environ.get('LOGGER'))
 
@@ -66,7 +67,42 @@ class CityPointConnector(AbstractConnector):
 
         asyncio.create_task(self.check_transport_with_discreteness(86400))
         asyncio.create_task(self.fetch_timezones(86400))
+        if runtime := get_last_runtime():
+            asyncio.create_task(self.get_states_since(runtime))
         asyncio.create_task(self.fetch_transport_states(16))
+
+    async def get_states_since(self, runtime):
+        start_ts, end_ts = runtime.end_ts, int(datetime.timestamp(datetime.now()))
+
+        try:
+            transport_ids = get_transport_ids('city_point')
+            print(transport_ids)
+            for transport_id in transport_ids:
+                res = self.source.load_historical_messages_by_id(transport_id, start_ts, end_ts)
+                self.save_trips(transport_id, res.get('messages', []))
+                await asyncio.sleep(10)
+
+        except Exception as exc:
+            logger.exception(exc)
+
+    def save_trips(self, transport_id, trips):
+        car = get_car_by_id(transport_id)
+        time_format = "%Y-%m-%dT%H:%M:%SZ"
+        print(f"for {car.name} {len(trips)} states")
+        for trip in trips:
+            save_unsent_telemetry(Transport(
+                ts=datetime.strptime(trip['attributes']['RecordDate'], time_format) + timedelta(hours=5),
+                is_sent=False,
+                latitude=trip['attributes']['Lat'],
+                longitude=trip['attributes']['Lat'],
+                velocity=trip['attributes']['Velocity'],
+                fuel_level=None,
+                car_id=transport_id,
+                ignition=1,
+                light=None,
+                last_conn=datetime.strptime(trip['attributes']['RecordDate'], time_format) + timedelta(hours=5),
+                name=car.name
+            ))
 
     async def fetch_sensors(self):
         try:
