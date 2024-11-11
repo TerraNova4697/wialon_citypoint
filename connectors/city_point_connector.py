@@ -69,7 +69,7 @@ class CityPointConnector(AbstractConnector):
         asyncio.create_task(self.check_transport_with_discreteness(86400))
         asyncio.create_task(self.fetch_timezones(86400))
         if runtime := get_last_runtime():
-            await asyncio.create_task(self.get_states_since(runtime))
+            asyncio.create_task(self.get_states_since(runtime))
         asyncio.create_task(self.fetch_transport_states(16))
 
     async def get_states_since(self, runtime):
@@ -184,6 +184,7 @@ class CityPointConnector(AbstractConnector):
 
     async def fetch_transport_states(self, discreteness: int):
         while True:
+            logger.info('Fetching states')
             time_format = "%Y-%m-%dT%H:%M:%SZ"
             dt = datetime.now()
             ts = datetime.timestamp(dt)
