@@ -36,10 +36,9 @@ class Transport:
         data = {
             'latitude': self.latitude,
             'longitude': self.longitude,
-            'last_conn': int(round(self.last_conn * 1000))
+            'last_conn': int(round(self.last_conn * 1000)),
+            'velocity': self.velocity if self.velocity else 0
         }
-        if self.velocity:
-            data['velocity'] = self.velocity
         if self.fuel_level:
             data['fuel_level'] = self.fuel_level
         if self.light:
