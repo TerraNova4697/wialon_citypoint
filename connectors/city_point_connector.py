@@ -4,7 +4,7 @@ import asyncio
 import re
 from abc import ABC
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from copy import copy
 from http.client import RemoteDisconnected
 
@@ -92,7 +92,7 @@ class CityPointConnector(AbstractConnector):
         print(f"for {car.name} {len(trips)} states")
         for trip in trips:
             save_unsent_telemetry(Transport(
-                ts=datetime.strptime(trip['attributes']['RecordDate'], time_format) + timedelta(hours=5),
+                ts=datetime.strptime(trip['attributes']['RecordDate'], time_format),
                 is_sent=False,
                 latitude=trip['attributes']['Lat'],
                 longitude=trip['attributes']['Lat'],
@@ -101,7 +101,7 @@ class CityPointConnector(AbstractConnector):
                 car_id=transport_id,
                 ignition=1,
                 light=None,
-                last_conn=datetime.strptime(trip['attributes']['RecordDate'], time_format) + timedelta(hours=5),
+                last_conn=datetime.strptime(trip['attributes']['RecordDate'], time_format),
                 name=car.name
             ))
 

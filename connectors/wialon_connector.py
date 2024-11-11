@@ -148,6 +148,7 @@ class WialonConnector(AbstractConnector):
                 place=json.loads(event['d']['p'].get('task_tags', '')).get('ZONE', '')
             )
             car = get_car_by_id(a.car_id)
+            logger.warning(f"{a}, {car.name}")
             if not self.rest_client or not self.rest_client.post_alarm(a, car.name):
                 # TODO: Save to DB.
                 pass
