@@ -6,6 +6,7 @@ from abc import ABC
 
 from datetime import datetime, timedelta
 from copy import copy
+from http.client import RemoteDisconnected
 
 from tb_gateway_mqtt import TBGatewayMqttClient
 from tb_rest_client import RestClientPE
@@ -53,7 +54,7 @@ class CityPointConnector(AbstractConnector):
     async def start_loop(self):
         try:
             res = self.source.auth()
-        except (RequestsConnectionError, NameResolutionError, TimeoutError) as exc:
+        except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
             res = False
             logger.exception(f"Exception trying to authenticate: {exc}")
         while not res:
@@ -111,7 +112,7 @@ class CityPointConnector(AbstractConnector):
             self.data['fuel_sensors_id'] = get_sensors_by_destination(100)
             self.data['ignition_sensors_id'] = get_sensors_by_destination(1)
             self.data['light_sensors_id'] = get_sensors_by_destination(1300)
-        except (RequestsConnectionError, NameResolutionError, TimeoutError) as exc:
+        except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
             logger.exception(f"Exception trying to fetch sensors: {exc}")
             await asyncio.sleep(10)
             await self.fetch_sensors()
@@ -121,7 +122,7 @@ class CityPointConnector(AbstractConnector):
             await asyncio.sleep(discreteness)
             try:
                 notifications = self.source.get_messages()
-            except (RequestsConnectionError, NameResolutionError, TimeoutError) as exc:
+            except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
                 logger.exception(f"Exception trying to fetch notifications: {exc}")
                 await asyncio.sleep(10)
                 continue
@@ -165,7 +166,7 @@ class CityPointConnector(AbstractConnector):
         while True:
             try:
                 transports_result = self.source.get_transport_list()
-            except (RequestsConnectionError, NameResolutionError, TimeoutError) as exc:
+            except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
                 logger.exception(f"Exception trying to fetch transport: {exc}")
                 await asyncio.sleep(10)
                 continue
@@ -193,7 +194,7 @@ class CityPointConnector(AbstractConnector):
                 if transports.get('errors'):
                     await asyncio.sleep(10)
                     continue
-            except (RequestsConnectionError, NameResolutionError, TimeoutError) as exc:
+            except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
                 logger.exception(f"Exception trying to fetch transport stated: {exc}")
                 await asyncio.sleep(10)
                 continue
