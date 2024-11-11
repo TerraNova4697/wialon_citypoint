@@ -192,6 +192,7 @@ class CityPointConnector(AbstractConnector):
             try:
                 transports = self.source.get_transports(query_filter=','.join(f'"{str(car_id)}"' for car_id in self.data['transports_id']))
                 if transports.get('errors'):
+                    logger.warning(transports)
                     await asyncio.sleep(10)
                     continue
             except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
@@ -230,6 +231,7 @@ class CityPointConnector(AbstractConnector):
                     )
 
                     if not self.destination or not self.destination.send_data(*t.form_mqtt_message()):
+                        logger.exception("Exception sending MQTT")
                         save_unsent_telemetry(t)
 
             await asyncio.sleep(discreteness)
