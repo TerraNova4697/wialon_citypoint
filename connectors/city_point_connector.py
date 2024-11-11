@@ -69,7 +69,7 @@ class CityPointConnector(AbstractConnector):
         asyncio.create_task(self.check_transport_with_discreteness(86400))
         asyncio.create_task(self.fetch_timezones(86400))
         if runtime := get_last_runtime():
-            asyncio.create_task(self.get_states_since(runtime))
+            await asyncio.create_task(self.get_states_since(runtime))
         asyncio.create_task(self.fetch_transport_states(16))
 
     async def get_states_since(self, runtime):
@@ -186,7 +186,6 @@ class CityPointConnector(AbstractConnector):
         while True:
             time_format = "%Y-%m-%dT%H:%M:%SZ"
             dt = datetime.now()
-            logger.info('Fetching states')
             ts = datetime.timestamp(dt)
 
             try:
@@ -231,7 +230,6 @@ class CityPointConnector(AbstractConnector):
                     )
 
                     if not self.destination or not self.destination.send_data(*t.form_mqtt_message()):
-                        logger.exception("Exception sending MQTT")
                         save_unsent_telemetry(t)
 
             await asyncio.sleep(discreteness)
