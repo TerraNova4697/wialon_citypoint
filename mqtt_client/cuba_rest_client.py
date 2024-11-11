@@ -21,14 +21,7 @@ class CubaRestClient:
         with RestClientPE(base_url=self.BASE_URL) as rest_client:
             try:
                 rest_client.login(self.CUBA_USER, self.CUBA_PASSWORD)
-                # get device by name
-                device = rest_client.get_tenant_device(device_name)
-                device = rest_client.get_customer_devices(
-                    customer_id=CustomerId(os.environ.get('CUBA_CLIENT_ID'), "CUSTOMER"),
-                    page_size=1,
-                    page=0,
-                    text_search=device_name
-                ).data
+                device = rest_client.get_tenant_device(device_name=device_name)
                 print(device)
                 logger.warning(f"ALARM. {device_name}: {alarm}")
                 alarm = alarm.to_rest_object(device.id)

@@ -68,8 +68,8 @@ class CityPointConnector(AbstractConnector):
 
         asyncio.create_task(self.check_transport_with_discreteness(86400))
         asyncio.create_task(self.fetch_timezones(86400))
-        if runtime := get_last_runtime():
-            asyncio.create_task(self.get_states_since(runtime))
+        # if runtime := get_last_runtime():
+        #     asyncio.create_task(self.get_states_since(runtime))
         asyncio.create_task(self.fetch_transport_states(16))
 
     async def get_states_since(self, runtime):
@@ -202,8 +202,8 @@ class CityPointConnector(AbstractConnector):
 
             for transport in transports.get('data', []):
                 if int(transport['id']) in self.data['transports_id']:
-                    latest_gps_date = datetime.strptime(transport['attributes']['LattestGpsDate'], time_format) + timedelta(hours=5)
-                    if (datetime.now() - latest_gps_date).seconds > 30:
+                    latest_gps_date = datetime.strptime(transport['attributes']['LattestGpsDate'], time_format)
+                    if (datetime.now() - latest_gps_date).seconds > 600:
                         continue
                     fuel_sensor = [
                         sensor for sensor in transport['attributes']['Sensors'] if sensor['id'] in self.data['fuel_sensors_id']
@@ -214,8 +214,8 @@ class CityPointConnector(AbstractConnector):
                     transport_model = self.transport_map.get(str(transport['id']))
                     model = transport_model.get('attributes', {}).get('Model', '')
                     reg_number = transport_model.get('attributes', {}).get('RegNumber', '').replace('_', ' ')
-                    ts = datetime.strptime(transport['attributes']['RecordDate'], time_format) + timedelta(hours=5)
-                    last_conn = datetime.strptime(transport['attributes']['LattestGpsDate'], time_format) + timedelta(hours=5)
+                    ts = datetime.strptime(transport['attributes']['RecordDate'], time_format)
+                    last_conn = datetime.strptime(transport['attributes']['LattestGpsDate'], time_format)
                     t = Transport(
                         ts=datetime.timestamp(ts),
                         is_sent=False,

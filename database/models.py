@@ -65,3 +65,13 @@ class RunTime(Base):
     id: Mapped[int] = mapped_column(Integer, autoincrement=True, primary_key=True)
     start_ts: Mapped[int] = mapped_column(Integer)
     end_ts: Mapped[int] = mapped_column(Integer)
+
+
+class Counter(Base):
+    __tablename__ = 'counters'
+
+    id: Mapped[int] = mapped_column(Integer, autoincrement=True, primary_key=True)
+    mileage: Mapped[int] = mapped_column(Integer, nullable=True)
+    engine_seconds: Mapped[float] = mapped_column(Integer, nullable=True)
+    ts: Mapped[int] = mapped_column(Integer)
+    car_id: Mapped[int] = mapped_column(ForeignKey('cars.id'))

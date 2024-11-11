@@ -4,7 +4,7 @@ import os
 import logging
 import re
 from http.client import RemoteDisconnected
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from urllib3.exceptions import NameResolutionError
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -16,7 +16,7 @@ from telemetry_objects.alarm import Alarm
 from telemetry_objects.transport import Transport
 
 from database.operations import save_unsent_telemetry, add_wialon_transport_if_not_exists, get_transport_ids, \
-    get_car_by_id, get_last_runtime, save_unsent_telemetry_list
+    get_car_by_id, get_last_runtime, save_unsent_telemetry_list, save_counter, get_counters_for_period
 from tm_source.abs_transport_src import AbstractTransportSource
 
 logger = logging.getLogger(os.environ.get("LOGGER"))
@@ -47,10 +47,33 @@ class WialonConnector(AbstractConnector):
 
         wialon_transport_ids = get_transport_ids('wialon')
         asyncio.create_task(self.check_transport_with_discreteness(86400))
-        if runtime := get_last_runtime():
-            asyncio.create_task(self.get_states_since(runtime))
+        # if runtime := get_last_runtime():
+        #     asyncio.create_task(self.get_states_since(runtime))
         self.source.manage_session_units(wialon_transport_ids)
         asyncio.create_task(self.get_avls(2))
+        # asyncio.create_task(self.monitor_counters(600))
+        # asyncio.create_task(self.send_day_report())
+
+    async def monitor_counters(self, discreteness):
+        while True:
+            try:
+                data = self.source.get_counters_info()
+            except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
+                logger.exception(f"Exception trying to fetch transport states: {exc}")
+                await asyncio.sleep(10)
+                continue
+
+            if data['items']:
+                ts = datetime.timestamp(datetime.now())
+                for item in data['items']:
+                    save_counter(
+                        milage=item.get('cnm'),
+                        engine_seconds=int(item['cneh'] * 3600) if item.get('cneh') else None,
+                        ts=ts,
+                        car_id=item['id']
+                    )
+
+            await asyncio.sleep(discreteness)
 
     async def get_states_since(self, runtime):
         start_ts, end_ts = runtime.end_ts, int(datetime.timestamp(datetime.now()))
@@ -146,6 +169,12 @@ class WialonConnector(AbstractConnector):
             )
             if not self.destination or not self.destination.send_data(*t.form_mqtt_message()):
                 save_unsent_telemetry(t)
+
+    async def send_day_report(self, hour=6, minute=0, second=0):
+        start_ts = int(datetime.timestamp((datetime.now() - timedelta(days=1)).replace(hour=0, minute=0, second=0)))
+        end_ts = int(datetime.timestamp((datetime.now() - timedelta(days=1)).replace(hour=23, minute=59, second=59)))
+
+        counters = get_counters_for_period(start_ts, end_ts)
 
     async def fetch_transport_states(self, discreteness: int):
         while True:

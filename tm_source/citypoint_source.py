@@ -32,6 +32,7 @@ class CityPointSource(AbstractTransportSource):
         self.SENSORS_INFO: str = f"/sensors"
         self.MESSAGES: str = '/notifications?include=Driver,Zone,Car&page[limit]=10'
         self.GEO_ZONES: str = '/zones?fields[zone]=Name,Description,Geometry'
+        self.DAY_CAR_INFO: str = '/cars/aggregated/{}/day?fields[carAggrData]=Mileage,WorkingHours,FuelConsumptionHour,FuelConsumptionKm,IdleFuelVolume,IdleHours,Car'
 
     def get_planned_routes(self):
         pass
@@ -62,6 +63,25 @@ class CityPointSource(AbstractTransportSource):
         if not self.is_connected():
             while not self.get_access_token():
                 sleep(10)
+
+    def get_day_info(self, date_str):
+        self.get_token_if_expired()
+        headers = {
+            "Accept": "application/vnd.api+json",
+            "Authorization": f"{self.token_type} {self.access_token}"
+        }
+        try:
+            res = self.session.get(
+                url=self.BASE_URL + f"/user/{self.user_id}" + self.DAY_CAR_INFO.format(date_str),
+                headers=headers
+            )
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
+        if 200 <= res.status_code < 300:
+            return res.json()
+        logger.warning(f"Could not fetch day report. Status code: {res.status_code}")
+        logger.warning(f"Message: {res.json()}")
 
     def get_sensors(self):
         self.get_token_if_expired()

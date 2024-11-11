@@ -112,6 +112,31 @@ class WialonSource(AbstractTransportSource):
         logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
         logger.warning(f"Message: {res.json()}")
 
+    def get_counters_info(self):
+        if not self.is_connected():
+            self.auth()
+        params = {
+            "spec": {
+                "itemsType": "avl_unit",
+                "propName": "avl_unit",
+                "propValueMask": "*",
+                "sortType": "sys_name",
+                "propType": "avl_unit"
+            },
+            "force": 1,
+            "flags": 8193,
+            "from": 0,
+            "to": 0
+        }
+        try:
+            res = self.session.get(self.BASE_URL + 'core/search_items&params=' + self.convert_params(params) + f"&sid={self.access_token}")
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
+        if 200 <= res.status_code < 300:
+            logger.info(res.json())
+            return res.json()
+
     def load_violations_by_id(self, start_ts, item_id):
         if not self.is_connected():
             self.auth()
@@ -213,7 +238,7 @@ class WialonSource(AbstractTransportSource):
                 {
                     "type": "col",
                     "data": item_ids,
-                    "flags": 32,
+                    "flags": 32+8192,
                     "mode": 0
                 }
             ]

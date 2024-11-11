@@ -7,8 +7,8 @@ from sqlalchemy.exc import IntegrityError, MultipleResultsFound, NoResultFound
 from psycopg2.errors import UniqueViolation
 from sqlalchemy.sql import exists
 
-from database.database import Session
-from database.models import Sensor, Car, CarState, RunTime
+from database.database import Session, engine
+from database.models import Sensor, Car, CarState, RunTime, Counter
 from telemetry_objects.transport import Transport
 
 
@@ -82,6 +82,35 @@ def add_sensors_if_not_exist(sensors):
                 pass
 
 
+def save_counter(milage, engine_seconds, ts, car_id):
+    if milage is None and engine_seconds is None:
+        return
+    with Session() as session:
+        session.add(Counter(
+            milage=milage,
+            engine_seconds=engine_seconds,
+            ts=ts,
+            car_id=car_id
+        ))
+        session.commit()
+
+
+def get_counters_for_period(car_id, start_ts, end_ts):
+    with (Session as session):
+        session.query(Counter) \
+            .where(Counter.ts >= start_ts) \
+            .where(Counter.ts <= end_ts) \
+            .group_by(Counter.car_id) \
+            .all()
+
+
+def add_counter(mileage, engine_seconds, ts, car_id):
+    with Session() as session:
+        session.add(Counter(mileage=mileage, engine_seconds=engine_seconds,
+                            ts=ts, car_id=car_id))
+        session.commit()
+
+
 def add_wialon_transport_if_not_exists(transports):
     with Session() as session:
         for transport in transports:
@@ -119,6 +148,7 @@ def get_all_transport_names():
 
 
 def save_unsent_telemetry_list(telemetry: list[Transport]):
+    logger.warning("Save unsent telemetry list")
     with Session() as session:
         for data in telemetry:
             session.add(CarState(
@@ -140,6 +170,7 @@ def get_last_runtime():
 
 
 def save_unsent_telemetry(telemetry: Transport):
+    logger.warning(f"save unsent telemetry")
     with Session() as session:
         session.add(CarState(
             **telemetry.to_model()
