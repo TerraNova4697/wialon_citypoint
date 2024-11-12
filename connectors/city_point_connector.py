@@ -4,13 +4,13 @@ import asyncio
 import re
 from abc import ABC
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from copy import copy
 from http.client import RemoteDisconnected
 
 from tb_gateway_mqtt import TBGatewayMqttClient
 from tb_rest_client import RestClientPE
-from urllib3.exceptions import NameResolutionError
+from urllib3.exceptions import NameResolutionError, MaxRetryError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from connectors.abs_connector import AbstractConnector
@@ -59,7 +59,7 @@ class CityPointConnector(AbstractConnector):
             logger.exception(f"Exception trying to authenticate: {exc}")
         while not res:
             logger.info('Failed authentication')
-            await asyncio.sleep(10)
+            await asyncio.sleep(30)
             await self.start_loop()
         logger.info('Authenticated')
 
@@ -71,6 +71,52 @@ class CityPointConnector(AbstractConnector):
         # if runtime := get_last_runtime():
         #     asyncio.create_task(self.get_states_since(runtime))
         asyncio.create_task(self.fetch_transport_states(16))
+        asyncio.create_task(self.daily_report(hour=6, minute=0))
+
+    async def daily_report(self, hour, minute):
+        while True:
+            # Get the current time
+            now = datetime.now()
+            next_run = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+            if next_run < now:
+                next_run += timedelta(days=1)
+
+            time_to_wait = (next_run - now).total_seconds()
+            logger.info(f"Waiting {time_to_wait} seconds until the next run at {next_run}")
+
+            await asyncio.sleep(time_to_wait)
+
+            await self.send_report()
+
+    async def send_report(self):
+        dt = datetime.today().replace(hour=6, minute=0, second=0, microsecond=0) - timedelta(days=1)
+        try:
+            res = self.source.get_day_info(dt.strftime('%Y-%m-%d'))
+        except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
+            logger.exception(f"Exception trying to fetch day report: {exc}")
+            await asyncio.sleep(10)
+
+        if not res or not res.get('data'):
+            return
+        for record in res['data']:
+            car = get_car_by_id(int(record['relationships']['Car']['data']['id']))
+            if not car or car.is_hidden:
+                continue
+
+            try:
+                self.destination.send_data(
+                    car.name,
+                    {
+                        'ts': int(round(datetime.timestamp(dt) * 1000)),
+                        'values': {
+                            'mileage': record['attributes'].get('Mileage', 0),
+                            'working_hours': record['attributes'].get('WorkingHours', 0)
+                        }
+                    }
+                )
+            except Exception as exc:
+                logger.exception(exc)
 
     async def get_states_since(self, runtime):
         start_ts, end_ts = runtime.end_ts, int(datetime.timestamp(datetime.now()))
@@ -115,7 +161,6 @@ class CityPointConnector(AbstractConnector):
         except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
             logger.exception(f"Exception trying to fetch sensors: {exc}")
             await asyncio.sleep(10)
-            await self.fetch_sensors()
 
     async def fetch_notifications(self, discreteness):
         while True:
@@ -170,6 +215,8 @@ class CityPointConnector(AbstractConnector):
                 logger.exception(f"Exception trying to fetch transport: {exc}")
                 await asyncio.sleep(10)
                 continue
+            except MaxRetryError:
+                await asyncio.sleep(60)
             transports = transports_result['data']
             add_transport_if_not_exists(transports)
             self.load_transport_in_memory(transports)

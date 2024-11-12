@@ -3,6 +3,7 @@ import logging
 from time import sleep
 
 from urllib3.exceptions import NameResolutionError
+from http.client import RemoteDisconnected
 
 from tm_source.abs_transport_src import AbstractTransportSource
 from datetime import datetime, timedelta
@@ -51,7 +52,7 @@ class CityPointSource(AbstractTransportSource):
                 url=self.BASE_URL + f"/user/{self.user_id}" + self.SENSORS_INFO,
                 headers=headers
             )
-        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exception:
             self.session = requests.session()
             raise exception.__class__()
         if 200 <= res.status_code < 300:
@@ -65,6 +66,11 @@ class CityPointSource(AbstractTransportSource):
                 sleep(10)
 
     def get_day_info(self, date_str):
+        """
+
+        :param date_str: YYYY-MM-DD
+        :return:
+        """
         self.get_token_if_expired()
         headers = {
             "Accept": "application/vnd.api+json",
@@ -75,7 +81,7 @@ class CityPointSource(AbstractTransportSource):
                 url=self.BASE_URL + f"/user/{self.user_id}" + self.DAY_CAR_INFO.format(date_str),
                 headers=headers
             )
-        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exception:
             self.session = requests.session()
             raise exception.__class__()
         if 200 <= res.status_code < 300:
@@ -94,7 +100,7 @@ class CityPointSource(AbstractTransportSource):
                 url=self.BASE_URL + self.SENSORS_INFO,
                 headers=headers
             )
-        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exception:
             self.session = requests.session()
             raise exception.__class__()
         if 200 <= res.status_code < 300:
@@ -113,7 +119,7 @@ class CityPointSource(AbstractTransportSource):
                 url=self.BASE_URL + f"/user/{self.user_id}" + self.TS_LIST,
                 headers=headers
             )
-        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exception:
             self.session = requests.session()
             raise exception.__class__()
         if 200 <= res.status_code < 300:
@@ -132,7 +138,7 @@ class CityPointSource(AbstractTransportSource):
                 url=self.BASE_URL + f"/user/{self.user_id}" + self.TS_INFO,
                 headers=headers
             )
-        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exception:
             self.session = requests.session()
             raise exception.__class__()
         if 200 <= res.status_code < 300:
@@ -153,7 +159,7 @@ class CityPointSource(AbstractTransportSource):
                 url=self.BASE_URL + f"/user/{self.user_id}" + f"/cars/{transport_id}/history/full" + f"?fields[histState]=Velocity,Lat,Lon,RecordDate&filter[histState]=and(gte(Velocity,3),gt(RecordDate,{formatted_dt}))",
                 headers=headers
             )
-        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exception:
             self.session = requests.session()
             raise exception.__class__()
         if 200 <= res.status_code < 300:
@@ -178,7 +184,7 @@ class CityPointSource(AbstractTransportSource):
                     "Content-Type": "application/x-www-form-urlencoded"
                 }
             )
-        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exception:
             self.session = requests.session()
             raise exception.__class__()
         if 200 <= res.status_code < 300:
@@ -198,7 +204,7 @@ class CityPointSource(AbstractTransportSource):
                     "Content-Type": "application/x-www-form-urlencoded"
                 }
             )
-        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exception:
             self.session = requests.session()
             raise exception.__class__()
         if 200 <= res.status_code < 300:
@@ -218,7 +224,7 @@ class CityPointSource(AbstractTransportSource):
                 url=self.BASE_URL + f"/user/{self.user_id}" + self.MESSAGES,
                 headers=headers
             )
-        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError) as exception:
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exception:
             self.session = requests.session()
             raise exception.__class__()
         if 200 <= res.status_code < 300:

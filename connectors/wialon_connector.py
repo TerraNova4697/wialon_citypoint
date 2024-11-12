@@ -51,8 +51,29 @@ class WialonConnector(AbstractConnector):
         #     asyncio.create_task(self.get_states_since(runtime))
         self.source.manage_session_units(wialon_transport_ids)
         asyncio.create_task(self.get_avls(2))
+        asyncio.create_task(self.daily_report(hour=6, minute=0))
         # asyncio.create_task(self.monitor_counters(600))
         # asyncio.create_task(self.send_day_report())
+
+    async def daily_report(self, hour, minute):
+        while True:
+            # Get the current time
+            now = datetime.now()
+            next_run = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+            if next_run < now:
+                next_run += timedelta(days=1)
+
+            time_to_wait = (next_run - now).total_seconds()
+            logger.info(f"Waiting {time_to_wait} seconds until the next run at {next_run}")
+
+            await asyncio.sleep(time_to_wait)
+
+            await self.send_report()
+
+    async def send_report(self):
+        print("Execute")
+        pass
 
     async def monitor_counters(self, discreteness):
         while True:
@@ -119,6 +140,8 @@ class WialonConnector(AbstractConnector):
                 await asyncio.sleep(10)
                 continue
 
+            if not data:
+                continue
             for event in data.get('events', []):
                 try:
                     if event['d'].get('tp') == 'ud':

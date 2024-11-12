@@ -24,7 +24,7 @@ logger = logging.getLogger(os.environ.get('LOGGER'))
 
 async def main():
     mqtt_client = TBGatewayMqttClient(
-        '192.168.4.51',
+        os.environ.get('CUBA_MQTT_HOST'),
         int(os.environ.get('CUBA_PORT')),
         os.environ.get("CUBA_GATEWAY_TOKEN"),
         client_id=os.environ.get("CUBA_CLIENT_ID")
