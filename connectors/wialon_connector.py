@@ -52,7 +52,7 @@ class WialonConnector(AbstractConnector):
         self.source.manage_session_units(wialon_transport_ids)
         asyncio.create_task(self.get_avls(2))
         asyncio.create_task(self.daily_report(hour=6, minute=0))
-        # asyncio.create_task(self.monitor_counters(600))
+        asyncio.create_task(self.monitor_counters(600))
         # asyncio.create_task(self.send_day_report())
 
     async def daily_report(self, hour, minute):
@@ -80,7 +80,7 @@ class WialonConnector(AbstractConnector):
             try:
                 data = self.source.get_counters_info()
             except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
-                logger.exception(f"Exception trying to fetch transport states: {exc}")
+                logger.exception(f"Exception trying to fetch counters: {exc}")
                 await asyncio.sleep(10)
                 continue
 
@@ -88,7 +88,7 @@ class WialonConnector(AbstractConnector):
                 ts = datetime.timestamp(datetime.now())
                 for item in data['items']:
                     save_counter(
-                        milage=item.get('cnm'),
+                        mileage=item.get('cnm'),
                         engine_seconds=int(item['cneh'] * 3600) if item.get('cneh') else None,
                         ts=ts,
                         car_id=item['id']

@@ -82,12 +82,12 @@ def add_sensors_if_not_exist(sensors):
                 pass
 
 
-def save_counter(milage, engine_seconds, ts, car_id):
-    if milage is None and engine_seconds is None:
+def save_counter(mileage, engine_seconds, ts, car_id):
+    if mileage is None and engine_seconds is None:
         return
     with Session() as session:
         session.add(Counter(
-            milage=milage,
+            mileage=mileage,
             engine_seconds=engine_seconds,
             ts=ts,
             car_id=car_id
