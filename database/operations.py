@@ -86,13 +86,14 @@ def save_counter(mileage, engine_seconds, ts, car_id):
     if mileage is None and engine_seconds is None:
         return
     with Session() as session:
-        session.add(Counter(
-            mileage=mileage,
-            engine_seconds=engine_seconds,
-            ts=ts,
-            car_id=car_id
-        ))
-        session.commit()
+        if session.query(Car).where(Car.id == car_id).exists():
+            session.add(Counter(
+                mileage=mileage,
+                engine_seconds=engine_seconds,
+                ts=ts,
+                car_id=car_id
+            ))
+            session.commit()
 
 
 def get_counters_for_period(car_id, start_ts, end_ts):
