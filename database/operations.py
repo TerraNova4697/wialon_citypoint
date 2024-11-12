@@ -86,7 +86,7 @@ def save_counter(mileage, engine_seconds, ts, car_id):
     if mileage is None and engine_seconds is None:
         return
     with Session() as session:
-        if session.query(Car).where(Car.id == car_id).exists():
+        if session.query(exists().where(Car.id == car_id)).scalar():
             session.add(Counter(
                 mileage=mileage,
                 engine_seconds=engine_seconds,
