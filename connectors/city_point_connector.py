@@ -96,6 +96,9 @@ class CityPointConnector(AbstractConnector):
         except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
             logger.exception(f"Exception trying to fetch day report: {exc}")
             await asyncio.sleep(10)
+        except MaxRetryError:
+            self.source.delay = 60
+            await self.send_report()
 
         if not res or not res.get('data'):
             return
@@ -161,6 +164,9 @@ class CityPointConnector(AbstractConnector):
         except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
             logger.exception(f"Exception trying to fetch sensors: {exc}")
             await asyncio.sleep(10)
+        except MaxRetryError:
+            self.source.delay = 60
+            await self.fetch_sensors()
 
     async def fetch_notifications(self, discreteness):
         while True:
@@ -170,6 +176,9 @@ class CityPointConnector(AbstractConnector):
             except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
                 logger.exception(f"Exception trying to fetch notifications: {exc}")
                 await asyncio.sleep(10)
+                continue
+            except MaxRetryError:
+                self.source.delay = 60
                 continue
             alarms = [alarm for alarm in notifications['data'] if alarm['attributes']['Level'] >= 4]
             cars = [car for car in notifications['included'] if car['type'] == 'car']
@@ -216,7 +225,8 @@ class CityPointConnector(AbstractConnector):
                 await asyncio.sleep(10)
                 continue
             except MaxRetryError:
-                await asyncio.sleep(60)
+                self.source.delay = 60
+                continue
             transports = transports_result['data']
             add_transport_if_not_exists(transports)
             self.load_transport_in_memory(transports)
@@ -238,13 +248,16 @@ class CityPointConnector(AbstractConnector):
 
             try:
                 transports = self.source.get_transports(query_filter=','.join(f'"{str(car_id)}"' for car_id in self.data['transports_id']))
-                if transports.get('errors'):
+                if transports and transports.get('errors'):
                     logger.warning(transports)
                     await asyncio.sleep(10)
                     continue
             except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
                 logger.exception(f"Exception trying to fetch transport stated: {exc}")
                 await asyncio.sleep(10)
+                continue
+            except MaxRetryError:
+                self.source.delay = 60
                 continue
 
             for transport in transports.get('data', []):
