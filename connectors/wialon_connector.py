@@ -84,7 +84,7 @@ class WialonConnector(AbstractConnector):
                 await asyncio.sleep(10)
                 continue
 
-            if data['items']:
+            if data.get('items'):
                 ts = datetime.timestamp(datetime.now())
                 for item in data['items']:
                     save_counter(
