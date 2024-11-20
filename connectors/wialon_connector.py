@@ -6,6 +6,7 @@ import re
 from http.client import RemoteDisconnected
 from datetime import datetime, timedelta
 
+from pkg_resources import working_set
 from urllib3.exceptions import NameResolutionError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -16,7 +17,7 @@ from telemetry_objects.alarm import Alarm
 from telemetry_objects.transport import Transport
 
 from database.operations import save_unsent_telemetry, add_wialon_transport_if_not_exists, get_transport_ids, \
-    get_car_by_id, get_last_runtime, save_unsent_telemetry_list, save_counter, get_counters_for_period
+    get_car_by_id, get_last_runtime, save_unsent_telemetry_list, save_counter, get_counters_for_period, get_day_stats
 from tm_source.abs_transport_src import AbstractTransportSource
 
 logger = logging.getLogger(os.environ.get("LOGGER"))
@@ -61,6 +62,8 @@ class WialonConnector(AbstractConnector):
             now = datetime.now()
             next_run = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
 
+            await self.send_report()
+
             if next_run < now:
                 next_run += timedelta(days=1)
 
@@ -72,8 +75,29 @@ class WialonConnector(AbstractConnector):
             await self.send_report()
 
     async def send_report(self):
-        print("Execute")
-        pass
+        dt = datetime.today().replace(hour=6, minute=0, second=0, microsecond=0)
+        start_ts = int(datetime.timestamp(dt.replace(hour=0) - timedelta(days=1)))
+        end_ts = int(datetime.timestamp(dt.replace(hour=0)))
+        res = get_day_stats(start_ts, end_ts)
+        for record in res:
+            mileage, engine_hours, car_id = record
+            car = get_car_by_id(car_id)
+            if not car:
+                continue
+
+            try:
+                self.destination.send_data(
+                    car.name,
+                    {
+                        'ts': int(round(datetime.timestamp(dt) * 1000)),
+                        'values': {
+                            'mileage': mileage,
+                            'working_hours': engine_hours
+                        }
+                    }
+                )
+            except Exception as exc:
+                logger.exception(exc)
 
     async def monitor_counters(self, discreteness):
         while True:

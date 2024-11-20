@@ -191,7 +191,7 @@ def create_runtime(start_ts, end_ts):
         session.commit()
 
 
-def get_day_stats(start_ts, end_ts, minimum = False):
+def get_day_stats(start_ts, end_ts):
     with Session() as session:
         subquery = (
             select(
@@ -217,5 +217,4 @@ def get_day_stats(start_ts, end_ts, minimum = False):
                 subquery.c.car_id
             )
         )
-        print(query.compile(compile_kwargs={"literal_binds": True}))
         return session.execute(query).all()
