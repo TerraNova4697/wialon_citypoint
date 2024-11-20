@@ -6,7 +6,7 @@ from tb_device_mqtt import TBPublishInfo
 from tb_gateway_mqtt import TBGatewayMqttClient
 
 from database.operations import get_all_transport_names, get_history_data, get_transport_ids, delete_car_states
-from mqtt_client.abs_destination import AbstractDestination
+from destinations.abs_destination import AbstractDestination
 from telemetry_objects.transport import Transport
 
 logger = logging.getLogger(os.environ.get('LOGGER'))

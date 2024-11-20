@@ -3,7 +3,6 @@ import logging
 
 
 from tb_rest_client import RestClientPE
-from tb_rest_client.models.models_pe import Alarm, DeviceId, CustomerId
 from tb_rest_client.rest import ApiException
 
 
@@ -21,11 +20,9 @@ class CubaRestClient:
         with RestClientPE(base_url=self.BASE_URL) as rest_client:
             try:
                 rest_client.login(self.CUBA_USER, self.CUBA_PASSWORD)
+
                 device = rest_client.get_tenant_device(device_name=device_name)
-                print(device)
-                logger.warning(f"ALARM. {device_name}: {alarm}")
                 alarm = alarm.to_rest_object(device.id)
-                logger.warning(f"{alarm.name} | {alarm.type} | {alarm.details}")
                 rest_client.save_alarm(alarm)
                 return True
 
@@ -42,6 +39,7 @@ class CubaRestClient:
         with RestClientPE(base_url=self.BASE_URL) as rest_client:
             try:
                 rest_client.login(self.CUBA_USER, self.CUBA_PASSWORD)
+
                 device = rest_client.get_tenant_device(device_name)
                 return device
 

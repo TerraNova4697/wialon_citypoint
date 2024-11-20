@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from tb_gateway_mqtt import TBGatewayMqttClient
 
 from monitoring_source.abs_transport_src import AbstractTransportSource
-from mqtt_client.abs_destination import AbstractDestination
+from destinations.abs_destination import AbstractDestination
 
 class AbstractConnector(ABC):
     def __init__(

@@ -14,11 +14,11 @@ from urllib3.exceptions import NameResolutionError, MaxRetryError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from connectors.abs_connector import AbstractConnector
-from mqtt_client.cuba_rest_client import CubaRestClient
+from destinations.cuba_rest_client import CubaRestClient
 from telemetry_objects.alarm import Alarm
 from telemetry_objects.transport import Transport
 from monitoring_source.abs_transport_src import AbstractTransportSource
-from mqtt_client.abs_destination import AbstractDestination
+from destinations.abs_destination import AbstractDestination
 
 from database.operations import get_all_sensors, add_sensors_if_not_exist, get_fuel_sensors_ids, get_all_cars_ids, \
     add_transport_if_not_exists, save_unsent_telemetry, get_sensors_by_destination, get_car_by_id, get_last_runtime, \

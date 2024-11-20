@@ -8,8 +8,8 @@ from tb_gateway_mqtt import TBGatewayMqttClient
 
 from config import config_log
 from database.operations import create_runtime
-from mqtt_client.cuba_mqtt_client import CubaMqttClient
-from mqtt_client.cuba_rest_client import CubaRestClient
+from destinations.cuba_mqtt_client import CubaMqttClient
+from destinations.cuba_rest_client import CubaRestClient
 
 load_dotenv()
 

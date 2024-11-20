@@ -10,8 +10,8 @@ from urllib3.exceptions import NameResolutionError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from connectors.abs_connector import AbstractConnector
-from mqtt_client.abs_destination import AbstractDestination
-from mqtt_client.cuba_rest_client import CubaRestClient
+from destinations.abs_destination import AbstractDestination
+from destinations.cuba_rest_client import CubaRestClient
 from telemetry_objects.alarm import Alarm
 from telemetry_objects.transport import Transport
 
