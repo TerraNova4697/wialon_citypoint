@@ -218,4 +218,4 @@ def get_day_stats(start_ts, end_ts, minimum = False):
             )
         )
         print(query.compile(compile_kwargs={"literal_binds": True}))
-        return session.execute(query).scalars().all()
+        return session.execute(query).all()
