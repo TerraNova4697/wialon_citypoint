@@ -88,7 +88,7 @@ class WialonConnector(AbstractConnector):
                 self.destination.send_data(
                     car.name,
                     {
-                        'ts': int(round(datetime.timestamp(dt) * 1000)),
+                        'ts': int(round(datetime.timestamp(dt - timedelta(days=1)) * 1000)),
                         'values': {
                             'mileage': mileage,
                             'working_hours': engine_hours
