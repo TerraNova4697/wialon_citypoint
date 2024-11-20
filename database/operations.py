@@ -191,42 +191,14 @@ def create_runtime(start_ts, end_ts):
         session.commit()
 
 
-def get_day_mileage(start_ts, end_ts, minimum = False):
-    with Session() as session:
-        if minimum:
-            mileage = func.min(Counter.mileage).label('mileage_min')
-            # engine_seconds = func.min(Counter.engine_seconds).label('engine_seconds_min')
-        else:
-            mileage = func.max(Counter.mileage).label('mileage_max')
-        query = (
-            select(
-                mileage,
-                Counter.car_id
-            )
-            .where(
-                and_(
-                    Counter.ts >= start_ts,
-                    Counter.ts < end_ts
-                )
-            )
-            .group_by(Counter.car_id)
-        )
-        print(query.compile(compile_kwargs={"literal_binds": True}))
-        return session.execute(query).scalars().all()
-
-
 def get_day_stats(start_ts, end_ts, minimum = False):
     with Session() as session:
-        if minimum:
-            mileage = func.min(Counter.mileage).label('mileage_min')
-            engine_seconds = func.min(Counter.engine_seconds).label('engine_seconds_min')
-        else:
-            mileage = func.max(Counter.mileage).label('mileage_max')
-            engine_seconds = func.max(Counter.engine_seconds).label('engine_seconds_max')
-        query = (
+        subquery = (
             select(
-                mileage,
-                engine_seconds,
+                func.min(Counter.mileage).label('mileage_min'),
+                func.max(Counter.mileage).label('mileage_max'),
+                func.min(Counter.engine_seconds).label('engine_seconds_min'),
+                func.max(Counter.engine_seconds).label('engine_seconds_max'),
                 Counter.car_id
             )
             .where(
@@ -236,6 +208,14 @@ def get_day_stats(start_ts, end_ts, minimum = False):
                 )
             )
             .group_by(Counter.car_id)
+            .subquery('subquery')
+        )
+        query = (
+            select(
+                (subquery.c.mileage_max - subquery.c.mileage_min).label('mileage'),
+                (subquery.c.engine_seconds_max - subquery.c.engine_seconds_min).label('engine_seconds'),
+                subquery.c.car_id
+            )
         )
         print(query.compile(compile_kwargs={"literal_binds": True}))
         return session.execute(query).scalars().all()
