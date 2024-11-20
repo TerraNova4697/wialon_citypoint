@@ -17,7 +17,7 @@ from telemetry_objects.transport import Transport
 
 from database.operations import save_unsent_telemetry, add_wialon_transport_if_not_exists, get_transport_ids, \
     get_car_by_id, get_last_runtime, save_unsent_telemetry_list, save_counter, get_counters_for_period, get_day_stats
-from tm_source.abs_transport_src import AbstractTransportSource
+from monitoring_source.abs_transport_src import AbstractTransportSource
 
 logger = logging.getLogger(os.environ.get("LOGGER"))
 

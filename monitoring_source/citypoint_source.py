@@ -1,24 +1,20 @@
-import os
-import logging
 from time import sleep
 
 from urllib3.exceptions import NameResolutionError
 from http.client import RemoteDisconnected
 
-from tm_source.abs_transport_src import AbstractTransportSource
+from monitoring_source.abs_transport_src import AbstractTransportSource
 from datetime import datetime, timedelta
 import requests
-from functools import wraps
 
 import jwt
 
-
-logger = logging.getLogger(os.environ.get('LOGGER'))
+from monitoring_source.utils import report_error
 
 
 class CityPointSource(AbstractTransportSource):
 
-    def __init__(self, login, client_id, secret_key, password, *args, **kwargs):
+    def __init__(self, login, client_id, secret_key, password):
         super().__init__(login, client_id, secret_key, password)
         self.refresh_token: str | None = None
         self.access_token: str | None = None
@@ -36,18 +32,9 @@ class CityPointSource(AbstractTransportSource):
         self.GEO_ZONES: str = '/zones?fields[zone]=Name,Description,Geometry'
         self.DAY_CAR_INFO: str = '/cars/aggregated/{}/day?fields[carAggrData]=Mileage,WorkingHours,FuelConsumptionHour,FuelConsumptionKm,IdleFuelVolume,IdleHours,Car'
 
-    def get_planned_routes(self):
-        pass
-
-    def get_incidents(self):
-        pass
-
     def get_velocity_zones(self):
         self.get_token_if_expired()
-        headers = {
-            "Accept": "application/vnd.api+json",
-            "Authorization": f"{self.token_type} {self.access_token}"
-        }
+        headers = self.header
         try:
             res = self.session.get(
                 url=self.BASE_URL + f"/user/{self.user_id}" + self.SENSORS_INFO,
@@ -58,66 +45,11 @@ class CityPointSource(AbstractTransportSource):
             raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
-        logger.warning(f"Could not fetch geo-zones. Status code: {res.status_code}")
-        logger.warning(f"Message: {res.json()}")
-
-    def get_token_if_expired(self):
-        if not self.is_connected():
-            # if self.delay:
-            #     sleep(self.delay)
-            #     self.delay = None
-            while not self.get_access_token():
-                sleep(10)
-
-    def get_day_info(self, date_str):
-        """
-
-        :param date_str: YYYY-MM-DD
-        :return:
-        """
-        self.get_token_if_expired()
-        headers = {
-            "Accept": "application/vnd.api+json",
-            "Authorization": f"{self.token_type} {self.access_token}"
-        }
-        try:
-            res = self.session.get(
-                url=self.BASE_URL + f"/user/{self.user_id}" + self.DAY_CAR_INFO.format(date_str),
-                headers=headers
-            )
-        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exception:
-            self.session = requests.session()
-            raise exception.__class__()
-        if 200 <= res.status_code < 300:
-            return res.json()
-        logger.warning(f"Could not fetch day report. Status code: {res.status_code}")
-        logger.warning(f"Message: {res.json()}")
-
-    def get_sensors(self):
-        self.get_token_if_expired()
-        headers = {
-            "Accept": "application/vnd.api+json",
-            "Authorization": f"{self.token_type} {self.access_token}"
-        }
-        try:
-            res = self.session.get(
-                url=self.BASE_URL + self.SENSORS_INFO,
-                headers=headers
-            )
-        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exception:
-            self.session = requests.session()
-            raise exception.__class__()
-        if 200 <= res.status_code < 300:
-            return res.json()
-        logger.warning(f"Could not fetch sensors. Status code: {res.status_code}")
-        logger.warning(f"Message: {res.json()}")
+        report_error(res)
 
     def get_transport_list(self):
         self.get_token_if_expired()
-        headers = {
-            "Accept": "application/vnd.api+json",
-            "Authorization": f"{self.token_type} {self.access_token}"
-        }
+        headers = self.header
         try:
             res = self.session.get(
                 url=self.BASE_URL + f"/user/{self.user_id}" + self.TS_LIST,
@@ -128,15 +60,11 @@ class CityPointSource(AbstractTransportSource):
             raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
-        logger.warning(f"Could not fetch transport list. Status code: {res.status_code}")
-        logger.warning(f"Message: {res.json()}")
+        report_error(res)
 
     def get_transports(self, query_filter: str = ''):
         self.get_token_if_expired()
-        headers = {
-            "Accept": "application/vnd.api+json",
-            "Authorization": f"{self.token_type} {self.access_token}"
-        }
+        headers = self.header
         try:
             res = self.session.get(
                 url=self.BASE_URL + f"/user/{self.user_id}" + self.TS_INFO,
@@ -147,17 +75,13 @@ class CityPointSource(AbstractTransportSource):
             raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
-        logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
-        logger.warning(f"Message: {res.json()}")
+        report_error(res)
 
-    def load_historical_messages_by_id(self, transport_id, start_ts, end_ts):
+    def get_historical_messages_by_id(self, transport_id, start_ts, end_ts):
         self.get_token_if_expired()
         dt = datetime.fromtimestamp(start_ts)
         formatted_dt = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-        headers = {
-            "Accept": "application/vnd.api+json",
-            "Authorization": f"{self.token_type} {self.access_token}"
-        }
+        headers = self.header
         try:
             res = self.session.get(
                 url=self.BASE_URL + f"/user/{self.user_id}" + f"/cars/{transport_id}/history/full" + f"?fields[histState]=Velocity,Lat,Lon,RecordDate&filter[histState]=and(gte(Velocity,3),gt(RecordDate,{formatted_dt}))",
@@ -168,8 +92,7 @@ class CityPointSource(AbstractTransportSource):
             raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
-        logger.warning(f"Could not fetch transport states. Status code: {res.status_code}")
-        logger.warning(f"Message: {res.json()}")
+        report_error(res)
 
     def update_token(self, token_params: dict):
         self.token_type = token_params['token_type']
@@ -194,10 +117,36 @@ class CityPointSource(AbstractTransportSource):
         if 200 <= res.status_code < 300:
             self.update_token(res.json())
             return True
-        logger.warning(f"Could not authenticate. Status code: {res.status_code}")
-        logger.warning(f"Message: {res.json()}")
+        report_error(res)
         return False
 
+    def get_messages(self):
+        self.get_token_if_expired()
+        headers = self.header
+        try:
+            res = self.session.get(
+                url=self.BASE_URL + f"/user/{self.user_id}" + self.MESSAGES,
+                headers=headers
+            )
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
+        if 200 <= res.status_code < 300:
+            return res.json()
+        report_error(res)
+
+    def is_connected(self):
+        return datetime.now() > self.expires_at
+
+    def reinitialize_session(self):
+        self.session = requests.session()
+
+    @property
+    def header(self):
+        return {
+            "Accept": "application/vnd.api+json",
+            "Authorization": f"{self.token_type} {self.access_token}"
+        }
 
     def get_access_token(self):
         try:
@@ -214,18 +163,27 @@ class CityPointSource(AbstractTransportSource):
         if 200 <= res.status_code < 300:
             self.update_token(res.json())
             return True
-        logger.warning(f"Could not update token. Status code: {res.status_code}")
-        logger.warning(f"Message: {res.json()}")
+        report_error(res)
 
-    def get_messages(self):
+    def get_token_if_expired(self):
+        if not self.is_connected():
+            # if self.delay:
+            #     sleep(self.delay)
+            #     self.delay = None
+            while not self.get_access_token():
+                sleep(10)
+
+    def get_day_info(self, date_str):
+        """
+
+        :param date_str: YYYY-MM-DD
+        :return:
+        """
         self.get_token_if_expired()
-        headers = {
-            "Accept": "application/vnd.api+json",
-            "Authorization": f"{self.token_type} {self.access_token}"
-        }
+        headers = self.header
         try:
             res = self.session.get(
-                url=self.BASE_URL + f"/user/{self.user_id}" + self.MESSAGES,
+                url=self.BASE_URL + f"/user/{self.user_id}" + self.DAY_CAR_INFO.format(date_str),
                 headers=headers
             )
         except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exception:
@@ -233,8 +191,19 @@ class CityPointSource(AbstractTransportSource):
             raise exception.__class__()
         if 200 <= res.status_code < 300:
             return res.json()
-        logger.warning(f"Could not fetch messages. Status code: {res.status_code}")
-        logger.warning(f"Message: {res.json()}")
+        report_error(res)
 
-    def is_connected(self):
-        return datetime.now() > self.expires_at
+    def get_sensors(self):
+        self.get_token_if_expired()
+        headers = self.header
+        try:
+            res = self.session.get(
+                url=self.BASE_URL + self.SENSORS_INFO,
+                headers=headers
+            )
+        except (requests.exceptions.ConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exception:
+            self.session = requests.session()
+            raise exception.__class__()
+        if 200 <= res.status_code < 300:
+            return res.json()
+        report_error(res)

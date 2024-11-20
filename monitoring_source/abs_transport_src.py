@@ -18,14 +18,6 @@ class AbstractTransportSource(ABC):
         pass
 
     @abstractmethod
-    def get_planned_routes(self):
-        pass
-
-    @abstractmethod
-    def get_incidents(self):
-        pass
-
-    @abstractmethod
     def auth(self):
         pass
 
@@ -43,4 +35,12 @@ class AbstractTransportSource(ABC):
 
     @abstractmethod
     def get_messages(self):
+        pass
+
+    @abstractmethod
+    def get_historical_messages_by_id(self, transport_id: int, start_ts: int, end_ts: int):
+        pass
+
+    @abstractmethod
+    def reinitialize_session(self, *args):
         pass

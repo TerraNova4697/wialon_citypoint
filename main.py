@@ -16,8 +16,8 @@ load_dotenv()
 from connectors.city_point_connector import CityPointConnector
 from connectors.wialon_connector import WialonConnector
 from database.database import db_init
-from tm_source.citypoint_source import CityPointSource
-from tm_source.wialon_source import WialonSource
+from monitoring_source.citypoint_source import CityPointSource
+from monitoring_source.wialon_source import WialonSource
 
 logger = logging.getLogger(os.environ.get('LOGGER'))
 

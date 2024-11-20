@@ -17,7 +17,7 @@ from connectors.abs_connector import AbstractConnector
 from mqtt_client.cuba_rest_client import CubaRestClient
 from telemetry_objects.alarm import Alarm
 from telemetry_objects.transport import Transport
-from tm_source.abs_transport_src import AbstractTransportSource
+from monitoring_source.abs_transport_src import AbstractTransportSource
 from mqtt_client.abs_destination import AbstractDestination
 
 from database.operations import get_all_sensors, add_sensors_if_not_exist, get_fuel_sensors_ids, get_all_cars_ids, \
