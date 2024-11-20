@@ -1,3 +1,4 @@
+import asyncio
 import os
 import logging
 from time import sleep
@@ -26,6 +27,7 @@ class CityPointSource(AbstractTransportSource):
         self.token_type: str | None = None
         self.user_id: str | None = None
         self.session = requests.session()
+        self.delay: int | None = None
         self.BASE_URL: str = "https://api.citypoint.ru/v2.1"
         self.AUTH_URL: str = "/oauth/token"
         self.TS_INFO: str = f"/cars/states?fields[carState]=Lon,Lat,Velocity,RecordDate,LattestGpsDate,LattestConnectionTime,Sensors.value,Sensors.calibration"
@@ -62,6 +64,9 @@ class CityPointSource(AbstractTransportSource):
 
     def get_token_if_expired(self):
         if not self.is_connected():
+            # if self.delay:
+            #     sleep(self.delay)
+            #     self.delay = None
             while not self.get_access_token():
                 sleep(10)
 

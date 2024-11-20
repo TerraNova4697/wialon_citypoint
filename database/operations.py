@@ -3,6 +3,7 @@ import logging
 import os
 import re
 
+from sqlalchemy import select, and_, func
 from sqlalchemy.exc import IntegrityError, MultipleResultsFound, NoResultFound
 from psycopg2.errors import UniqueViolation
 from sqlalchemy.sql import exists
@@ -96,6 +97,11 @@ def save_counter(mileage, engine_seconds, ts, car_id):
             session.commit()
 
 
+def get_all_cars():
+    with Session() as session:
+        return session.query(Car.name, Car.department, Car.model).where(Car.source == 'wialon').all()
+
+
 def get_counters_for_period(car_id, start_ts, end_ts):
     with (Session as session):
         session.query(Counter) \
@@ -183,3 +189,53 @@ def create_runtime(start_ts, end_ts):
     with Session() as session:
         session.add(RunTime(start_ts=start_ts, end_ts=end_ts))
         session.commit()
+
+
+def get_day_mileage(start_ts, end_ts, minimum = False):
+    with Session() as session:
+        if minimum:
+            mileage = func.min(Counter.mileage).label('mileage_min')
+            # engine_seconds = func.min(Counter.engine_seconds).label('engine_seconds_min')
+        else:
+            mileage = func.max(Counter.mileage).label('mileage_max')
+        query = (
+            select(
+                mileage,
+                Counter.car_id
+            )
+            .where(
+                and_(
+                    Counter.ts >= start_ts,
+                    Counter.ts < end_ts
+                )
+            )
+            .group_by(Counter.car_id)
+        )
+        print(query.compile(compile_kwargs={"literal_binds": True}))
+        return session.execute(query).scalars().all()
+
+
+def get_day_stats(start_ts, end_ts, minimum = False):
+    with Session() as session:
+        if minimum:
+            mileage = func.min(Counter.mileage).label('mileage_min')
+            engine_seconds = func.min(Counter.engine_seconds).label('engine_seconds_min')
+        else:
+            mileage = func.max(Counter.mileage).label('mileage_max')
+            engine_seconds = func.max(Counter.engine_seconds).label('engine_seconds_max')
+        query = (
+            select(
+                mileage,
+                engine_seconds,
+                Counter.car_id
+            )
+            .where(
+                and_(
+                    Counter.ts >= start_ts,
+                    Counter.ts < end_ts
+                )
+            )
+            .group_by(Counter.car_id)
+        )
+        print(query.compile(compile_kwargs={"literal_binds": True}))
+        return session.execute(query).scalars().all()
