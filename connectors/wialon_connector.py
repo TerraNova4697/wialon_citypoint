@@ -6,7 +6,6 @@ import re
 from http.client import RemoteDisconnected
 from datetime import datetime, timedelta
 
-from pkg_resources import working_set
 from urllib3.exceptions import NameResolutionError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
