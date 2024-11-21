@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from tb_gateway_mqtt import TBGatewayMqttClient
 
 from config import config_log
-from database.operations import create_runtime
+from database.queries import RunTimeORM
 from destinations.cuba_mqtt_client import CubaMqttClient
 from destinations.cuba_rest_client import CubaRestClient
 
@@ -75,6 +75,6 @@ if __name__ == '__main__':
         asyncio.run(main())
     finally:
         end_ts = datetime.timestamp(datetime.now())
-        create_runtime(start_ts=start_ts, end_ts=end_ts)
+        RunTimeORM.create_runtime(start_ts=start_ts, end_ts=end_ts)
 
 

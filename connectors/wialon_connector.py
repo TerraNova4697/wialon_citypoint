@@ -10,13 +10,12 @@ from urllib3.exceptions import NameResolutionError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from connectors.abs_connector import AbstractConnector
+from database.queries import CarORM, CounterORM, CarStateORM
 from destinations.abs_destination import AbstractDestination
 from destinations.cuba_rest_client import CubaRestClient
 from telemetry_objects.alarm import Alarm
 from telemetry_objects.transport import Transport
 
-from database.operations import save_unsent_telemetry, add_wialon_transport_if_not_exists, get_transport_ids, \
-    get_car_by_id, get_last_runtime, save_unsent_telemetry_list, save_counter, get_counters_for_period, get_day_stats
 from monitoring_source.abs_transport_src import AbstractTransportSource
 
 logger = logging.getLogger(os.environ.get("LOGGER"))
@@ -45,7 +44,7 @@ class WialonConnector(AbstractConnector):
             await asyncio.sleep(10)
             await self.start_loop()
 
-        wialon_transport_ids = get_transport_ids('wialon')
+        wialon_transport_ids = CarORM.get_transport_ids('wialon')
         asyncio.create_task(self.check_transport_with_discreteness(86400))
         # if runtime := get_last_runtime():
         #     asyncio.create_task(self.get_states_since(runtime))
@@ -77,10 +76,10 @@ class WialonConnector(AbstractConnector):
         dt = datetime.today().replace(hour=6, minute=0, second=0, microsecond=0)
         start_ts = int(datetime.timestamp(dt.replace(hour=0) - timedelta(days=1)))
         end_ts = int(datetime.timestamp(dt.replace(hour=0)))
-        res = get_day_stats(start_ts, end_ts)
+        res = CounterORM.get_day_stats(start_ts, end_ts)
         for record in res:
             mileage, engine_hours, car_id = record
-            car = get_car_by_id(car_id)
+            car = CarORM.get_car_by_id(car_id)
             if not car:
                 continue
 
@@ -110,7 +109,7 @@ class WialonConnector(AbstractConnector):
             if data.get('items'):
                 ts = datetime.timestamp(datetime.now())
                 for item in data['items']:
-                    save_counter(
+                    CounterORM.save_counter(
                         mileage=item.get('cnm'),
                         engine_seconds=int(item['cneh'] * 3600) if item.get('cneh') else None,
                         ts=ts,
@@ -123,7 +122,7 @@ class WialonConnector(AbstractConnector):
         start_ts, end_ts = runtime.end_ts, int(datetime.timestamp(datetime.now()))
 
         try:
-            transport_ids = get_transport_ids('wialon')
+            transport_ids = CarORM.get_transport_ids('wialon')
 
             for transport_id in transport_ids:
                 res = self.source.load_historical_messages_by_id(transport_id, start_ts, end_ts)
@@ -135,10 +134,10 @@ class WialonConnector(AbstractConnector):
             logger.exception(exc)
 
     def save_trips(self, transport_id, trips):
-        car = get_car_by_id(transport_id)
+        car = CarORM.get_car_by_id(transport_id)
         for trip in trips:
             if trip['pos']['s'] > 3:
-                save_unsent_telemetry(Transport(
+                CarStateORM.save_unsent_telemetry(Transport(
                     ts=trip['t'],
                     is_sent=False,
                     latitude=trip['pos']['y'],
@@ -158,7 +157,7 @@ class WialonConnector(AbstractConnector):
             try:
                 data = self.source.get_avl_event()
             except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
-                self.source.reinitialize_session(get_transport_ids('wialon'))
+                self.source.reinitialize_session(CarORM.get_transport_ids('wialon'))
                 logger.exception(f"Exception trying to fetch transport states: {exc}")
                 await asyncio.sleep(10)
                 continue
@@ -193,7 +192,7 @@ class WialonConnector(AbstractConnector):
                 car_id=event['i'],
                 place=json.loads(event['d']['p'].get('task_tags', '')).get('ZONE', '')
             )
-            car = get_car_by_id(a.car_id)
+            car = CarORM.get_car_by_id(a.car_id)
             logger.warning(f"{a}, {car.name}")
             if not self.rest_client or not self.rest_client.post_alarm(a, car.name):
                 # TODO: Save to DB.
@@ -212,16 +211,16 @@ class WialonConnector(AbstractConnector):
                 ignition=event['d']['pos'].get('io_239'),
                 light=None,
                 last_conn=event['d']['rt'],
-                name=get_car_by_id(event['i']).name
+                name=CarORM.get_car_by_id(event['i']).name
             )
             if not self.destination or not self.destination.send_data(*t.form_mqtt_message()):
-                save_unsent_telemetry(t)
+                CarStateORM.save_unsent_telemetry(t)
 
     async def send_day_report(self, hour=6, minute=0, second=0):
         start_ts = int(datetime.timestamp((datetime.now() - timedelta(days=1)).replace(hour=0, minute=0, second=0)))
         end_ts = int(datetime.timestamp((datetime.now() - timedelta(days=1)).replace(hour=23, minute=59, second=59)))
 
-        counters = get_counters_for_period(start_ts, end_ts)
+        counters = CounterORM.get_counters_for_period(start_ts, end_ts)
 
     async def fetch_transport_states(self, discreteness: int):
         while True:
@@ -252,7 +251,7 @@ class WialonConnector(AbstractConnector):
                     )
                     telemetry.append(t)
                     if not self.destination or not self.destination.send_data(*t.form_mqtt_message()):
-                        save_unsent_telemetry(t)
+                        CarStateORM.save_unsent_telemetry(t)
 
             await asyncio.sleep(discreteness)
 
@@ -295,7 +294,7 @@ class WialonConnector(AbstractConnector):
                     'reg_number': reg_number,
                     'source': 'wialon'
                 })
-            add_wialon_transport_if_not_exists(transport_props)
+            CarORM.add_wialon_transport_if_not_exists(transport_props)
             self.load_transport_in_memory(transports)
             await asyncio.sleep(discreteness)
 

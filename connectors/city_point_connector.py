@@ -14,15 +14,14 @@ from urllib3.exceptions import NameResolutionError, MaxRetryError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from connectors.abs_connector import AbstractConnector
+from database.models import CarState
+from database.queries import CarORM, CarStateORM, SensorORM
 from destinations.cuba_rest_client import CubaRestClient
 from telemetry_objects.alarm import Alarm
 from telemetry_objects.transport import Transport
 from monitoring_source.abs_transport_src import AbstractTransportSource
 from destinations.abs_destination import AbstractDestination
 
-from database.operations import get_all_sensors, add_sensors_if_not_exist, get_fuel_sensors_ids, get_all_cars_ids, \
-    add_transport_if_not_exists, save_unsent_telemetry, get_sensors_by_destination, get_car_by_id, get_last_runtime, \
-    get_transport_ids
 
 logger = logging.getLogger(os.environ.get('LOGGER'))
 
@@ -63,7 +62,7 @@ class CityPointConnector(AbstractConnector):
             await self.start_loop()
         logger.info('Authenticated')
 
-        self.data['transports_id'] = get_all_cars_ids()
+        self.data['transports_id'] = CarORM.get_all_cars_ids()
         asyncio.create_task(self.fetch_sensors())
 
         asyncio.create_task(self.check_transport_with_discreteness(86400))
@@ -103,7 +102,7 @@ class CityPointConnector(AbstractConnector):
         if not res or not res.get('data'):
             return
         for record in res['data']:
-            car = get_car_by_id(int(record['relationships']['Car']['data']['id']))
+            car = CarORM.get_car_by_id(int(record['relationships']['Car']['data']['id']))
             if not car or car.is_hidden:
                 continue
 
@@ -125,7 +124,7 @@ class CityPointConnector(AbstractConnector):
         start_ts, end_ts = runtime.end_ts, int(datetime.timestamp(datetime.now()))
 
         try:
-            transport_ids = get_transport_ids('city_point')
+            transport_ids = CarORM.get_transport_ids('city_point')
             print(transport_ids)
             for transport_id in transport_ids:
                 res = self.source.load_historical_messages_by_id(transport_id, start_ts, end_ts)
@@ -136,11 +135,11 @@ class CityPointConnector(AbstractConnector):
             logger.exception(exc)
 
     def save_trips(self, transport_id, trips):
-        car = get_car_by_id(transport_id)
+        car = CarORM.get_car_by_id(transport_id)
         time_format = "%Y-%m-%dT%H:%M:%SZ"
         print(f"for {car.name} {len(trips)} states")
         for trip in trips:
-            save_unsent_telemetry(Transport(
+            CarStateORM.save_unsent_telemetry(Transport(
                 ts=datetime.strptime(trip['attributes']['RecordDate'], time_format),
                 is_sent=False,
                 latitude=trip['attributes']['Lat'],
@@ -157,10 +156,10 @@ class CityPointConnector(AbstractConnector):
     async def fetch_sensors(self):
         try:
             sensors = self.source.get_sensors()
-            add_sensors_if_not_exist(sensors['data'])
-            self.data['fuel_sensors_id'] = get_sensors_by_destination(100)
-            self.data['ignition_sensors_id'] = get_sensors_by_destination(1)
-            self.data['light_sensors_id'] = get_sensors_by_destination(1300)
+            SensorORM.add_sensors_if_not_exist(sensors['data'])
+            self.data['fuel_sensors_id'] = SensorORM.get_sensors_by_destination(100)
+            self.data['ignition_sensors_id'] = SensorORM.get_sensors_by_destination(1)
+            self.data['light_sensors_id'] = SensorORM.get_sensors_by_destination(1300)
         except (RequestsConnectionError, NameResolutionError, TimeoutError, RemoteDisconnected) as exc:
             logger.exception(f"Exception trying to fetch sensors: {exc}")
             await asyncio.sleep(10)
@@ -207,7 +206,7 @@ class CityPointConnector(AbstractConnector):
                     place=None
                 )
 
-                car = get_car_by_id(a.car_id)
+                car = CarORM.get_car_by_id(a.car_id)
 
                 if not self.rest_client or not self.rest_client.post_alarm(a, car.name):
                     # TODO: Save to DB.
@@ -228,7 +227,7 @@ class CityPointConnector(AbstractConnector):
                 self.source.delay = 60
                 continue
             transports = transports_result['data']
-            add_transport_if_not_exists(transports)
+            CarORM.add_transport_if_not_exists(transports)
             self.load_transport_in_memory(transports)
             await asyncio.sleep(discreteness)
             logger.info("end check_transport_with_discreteness")
@@ -287,11 +286,11 @@ class CityPointConnector(AbstractConnector):
                         ignition=ignition[0]['value'],
                         light=light[0]['value'],
                         last_conn=datetime.timestamp(last_conn),
-                        name=get_car_by_id(int(transport['id'])).name
+                        name=CarORM.get_car_by_id(int(transport['id'])).name
                     )
 
                     if not self.destination or not self.destination.send_data(*t.form_mqtt_message()):
-                        save_unsent_telemetry(t)
+                        CarStateORM.save_unsent_telemetry(t)
 
             await asyncio.sleep(discreteness)
 

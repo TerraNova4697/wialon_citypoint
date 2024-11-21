@@ -1,15 +1,9 @@
 from sqlalchemy import String, Integer, Boolean, ForeignKey, Float
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database.database import Base
 
 from typing import List
-
-
-# class Token(Base):
-#     __tablename__ = 'tokens'
-#
-#     access_token
 
 
 class Car(Base):
