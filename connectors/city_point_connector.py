@@ -2,25 +2,20 @@ import os
 import logging
 import asyncio
 import re
-from abc import ABC
 
 from datetime import datetime, timedelta
-from copy import copy
 from http.client import RemoteDisconnected
 
-from tb_gateway_mqtt import TBGatewayMqttClient
-from tb_rest_client import RestClientPE
 from urllib3.exceptions import NameResolutionError, MaxRetryError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from connectors.abs_connector import AbstractConnector
-from database.models import CarState
 from database.queries import CarORM, CarStateORM, SensorORM
+from destinations.cuba_mqtt_client import CubaMqttClient
 from destinations.cuba_rest_client import CubaRestClient
+from monitoring_source.citypoint_source import CityPointSource
 from telemetry_objects.alarm import Alarm
 from telemetry_objects.transport import Transport
-from monitoring_source.abs_transport_src import AbstractTransportSource
-from destinations.abs_destination import AbstractDestination
 
 
 logger = logging.getLogger(os.environ.get('LOGGER'))
@@ -42,8 +37,8 @@ class CityPointConnector(AbstractConnector):
 
     def __init__(
         self,
-        source: AbstractTransportSource,
-        destination: AbstractDestination | None,
+        source: CityPointSource,
+        destination: CubaMqttClient | None,
         data = None,
         rest_client: CubaRestClient = None
     ):
@@ -66,7 +61,7 @@ class CityPointConnector(AbstractConnector):
         asyncio.create_task(self.fetch_sensors())
 
         asyncio.create_task(self.check_transport_with_discreteness(86400))
-        asyncio.create_task(self.fetch_timezones(86400))
+        # asyncio.create_task(self.fetch_timezones(86400))
         # if runtime := get_last_runtime():
         #     asyncio.create_task(self.get_states_since(runtime))
         asyncio.create_task(self.fetch_transport_states(16))
@@ -99,8 +94,12 @@ class CityPointConnector(AbstractConnector):
             self.source.delay = 60
             await self.send_report()
 
-        if not res or not res.get('data'):
+        try:
+            if not res or not res.get('data'):  # noqa
+                return
+        except NameError:
             return
+
         for record in res['data']:
             car = CarORM.get_car_by_id(int(record['relationships']['Car']['data']['id']))
             if not car or car.is_hidden:
@@ -134,7 +133,8 @@ class CityPointConnector(AbstractConnector):
         except Exception as exc:
             logger.exception(exc)
 
-    def save_trips(self, transport_id, trips):
+    @staticmethod
+    def save_trips(transport_id, trips):
         car = CarORM.get_car_by_id(transport_id)
         time_format = "%Y-%m-%dT%H:%M:%SZ"
         print(f"for {car.name} {len(trips)} states")
@@ -180,12 +180,10 @@ class CityPointConnector(AbstractConnector):
                 self.source.delay = 60
                 continue
             alarms = [alarm for alarm in notifications['data'] if alarm['attributes']['Level'] >= 4]
-            cars = [car for car in notifications['included'] if car['type'] == 'car']
             drivers = [driver for driver in notifications['included'] if driver['type'] == 'driver']
             if not alarms:
                 continue
-            # TODO: save alarms to DB.
-            alarm_objects = []
+
             for alarm in alarms:
                 message = remove_html_tags(alarm['attributes']['Message']).split('\\')[0]
                 car_id = alarm['relationships'].get('Car', {}).get('data', {}).get('id')
@@ -201,8 +199,8 @@ class CityPointConnector(AbstractConnector):
                     record_date=full_date_to_timestamp(alarm['attributes']['RecordDate']),
                     date_of_creation=full_date_to_timestamp(alarm['attributes']['DateOfCreation']),
                     car_id=car_id,
-                    driver_first_name=driver['attributes']['FIO']['FirstName'] if driver else '',
-                    driver_last_name=driver['attributes']['FIO']['LastName'] if driver else '',
+                    driver_first_name=driver[0]['attributes']['FIO']['FirstName'] if driver else '',
+                    driver_last_name=driver[0]['attributes']['FIO']['LastName'] if driver else '',
                     place=None
                 )
 
@@ -232,18 +230,16 @@ class CityPointConnector(AbstractConnector):
             await asyncio.sleep(discreteness)
             logger.info("end check_transport_with_discreteness")
 
-    async def fetch_timezones(self, discreteness: int):
-        logger.info("start fetch_timezones")
-        while True:
-            await asyncio.sleep(discreteness)
-            logger.info('end fetch_timezones')
+    # async def fetch_timezones(self, discreteness: int):
+    #     logger.info("start fetch_timezones")
+    #     while True:
+    #         await asyncio.sleep(discreteness)
+    #         logger.info('end fetch_timezones')
 
     async def fetch_transport_states(self, discreteness: int):
         while True:
             logger.info('Fetching states')
             time_format = "%Y-%m-%dT%H:%M:%SZ"
-            dt = datetime.now()
-            ts = datetime.timestamp(dt)
 
             try:
                 transports = self.source.get_transports(query_filter=','.join(f'"{str(car_id)}"' for car_id in self.data['transports_id']))
@@ -270,9 +266,6 @@ class CityPointConnector(AbstractConnector):
                     ignition = [sensor for sensor in transport['attributes']['Sensors'] if sensor['id'] == 1]
                     light = [sensor for sensor in transport['attributes']['Sensors'] if sensor['id'] == 104]
                     velocity_can = [sensor for sensor in transport['attributes']['Sensors'] if sensor['id'] == 41]
-                    transport_model = self.transport_map.get(str(transport['id']))
-                    model = transport_model.get('attributes', {}).get('Model', '')
-                    reg_number = transport_model.get('attributes', {}).get('RegNumber', '').replace('_', ' ')
                     ts = datetime.strptime(transport['attributes']['RecordDate'], time_format)
                     last_conn = datetime.strptime(transport['attributes']['LattestGpsDate'], time_format)
                     t = Transport(

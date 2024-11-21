@@ -1,14 +1,12 @@
 from abc import ABC, abstractmethod
 
-from tb_gateway_mqtt import TBGatewayMqttClient
-
 from monitoring_source.abs_transport_src import AbstractTransportSource
 from destinations.abs_destination import AbstractDestination
 
 class AbstractConnector(ABC):
     def __init__(
             self,
-            source: AbstractTransportSource,
+            source,
             destination: AbstractDestination | None,
             data=None
     ):

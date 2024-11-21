@@ -13,10 +13,10 @@ from connectors.abs_connector import AbstractConnector
 from database.queries import CarORM, CounterORM, CarStateORM
 from destinations.abs_destination import AbstractDestination
 from destinations.cuba_rest_client import CubaRestClient
+from monitoring_source.wialon_source import WialonSource
 from telemetry_objects.alarm import Alarm
 from telemetry_objects.transport import Transport
 
-from monitoring_source.abs_transport_src import AbstractTransportSource
 
 logger = logging.getLogger(os.environ.get("LOGGER"))
 
@@ -25,7 +25,7 @@ class WialonConnector(AbstractConnector):
 
     def __init__(
             self,
-            source: AbstractTransportSource,
+            source: WialonSource,
             destination: AbstractDestination | None,
             data=None,
             rest_client: CubaRestClient = None
@@ -133,7 +133,8 @@ class WialonConnector(AbstractConnector):
         except Exception as exc:
             logger.exception(exc)
 
-    def save_trips(self, transport_id, trips):
+    @staticmethod
+    def save_trips(transport_id, trips):
         car = CarORM.get_car_by_id(transport_id)
         for trip in trips:
             if trip['pos']['s'] > 3:
@@ -216,11 +217,11 @@ class WialonConnector(AbstractConnector):
             if not self.destination or not self.destination.send_data(*t.form_mqtt_message()):
                 CarStateORM.save_unsent_telemetry(t)
 
-    async def send_day_report(self, hour=6, minute=0, second=0):
-        start_ts = int(datetime.timestamp((datetime.now() - timedelta(days=1)).replace(hour=0, minute=0, second=0)))
-        end_ts = int(datetime.timestamp((datetime.now() - timedelta(days=1)).replace(hour=23, minute=59, second=59)))
-
-        counters = CounterORM.get_counters_for_period(start_ts, end_ts)
+    # async def send_day_report(self, hour=6, minute=0, second=0):
+    #     start_ts = int(datetime.timestamp((datetime.now() - timedelta(days=1)).replace(hour=0, minute=0, second=0)))
+    #     end_ts = int(datetime.timestamp((datetime.now() - timedelta(days=1)).replace(hour=23, minute=59, second=59)))
+    #
+    #     counters = CounterORM.get_counters_for_period(start_ts, end_ts)
 
     async def fetch_transport_states(self, discreteness: int):
         while True:
