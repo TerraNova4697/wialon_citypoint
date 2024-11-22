@@ -1,3 +1,4 @@
+"""Abstract class of destination classes"""
 from abc import ABC, abstractmethod
 
 

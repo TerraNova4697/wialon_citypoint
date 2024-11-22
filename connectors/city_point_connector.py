@@ -77,6 +77,8 @@ class CityPointConnector(AbstractConnector):
                 next_run += timedelta(days=1)
 
             time_to_wait = (next_run - now).total_seconds()
+
+            await self.send_report()
             logger.info(f"Waiting {time_to_wait} seconds until the next run at {next_run}")
 
             await asyncio.sleep(time_to_wait)

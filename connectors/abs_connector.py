@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 
-from monitoring_source.abs_transport_src import AbstractTransportSource
 from destinations.abs_destination import AbstractDestination
 
 class AbstractConnector(ABC):

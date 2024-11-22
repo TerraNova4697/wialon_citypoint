@@ -8,6 +8,11 @@ logger = logging.getLogger(os.environ.get('LOGGER'))
 
 
 def report_error(result: requests.Response):
+    """
+    Log unsuccessful request
+    :param result: Result of the response
+    :return:
+    """
     logger.warning('----------------------------------------------------------------------------------')
     logger.warning(f"Response returned with status code: {result.status_code}. Reason: {result.reason}")
     logger.warning(f"Requested URL: {result.url}")

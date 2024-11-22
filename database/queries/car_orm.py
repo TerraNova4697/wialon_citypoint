@@ -10,9 +10,15 @@ from database.models import Car
 
 
 class CarORM:
+    """__tablename__ = 'cars'"""
 
     @staticmethod
-    def get_transport_ids(source=None):
+    def get_transport_ids(source: str | None=None) -> list[int]:
+        """
+        Get all transport IDs.
+        :param source: query parameter for 'source' column.
+        :return: list of IDs.
+        """
         with Session() as session:
             query = session.query(Car.id)
             if source:
@@ -20,23 +26,41 @@ class CarORM:
             return session.execute(query).scalars().all()
 
     @staticmethod
-    def get_all_cars_ids():
+    def get_all_cars_ids() -> list[int]:
+        """
+        Get all transport IDs.
+        :return: list of IDs.
+        """
         with Session() as session:
             query = select(Car.id).where(Car.is_hidden == False)
             return session.execute(query).scalars().all()
 
     @staticmethod
-    def get_car_by_id(car_id):
+    def get_car_by_id(car_id: int) -> Car:
+        """
+        Get car by its ID.
+        :param car_id: Car.id
+        :return: Car
+        """
         with Session() as session:
             return session.query(Car).where(Car.id == car_id).scalar()
 
     @staticmethod
-    def get_all_cars():
+    def get_all_cars() -> list[Car]:
+        """
+        Get cars
+        :return: list of cars with columns name, department and model
+        """
         with Session() as session:
             return session.query(Car.name, Car.department, Car.model).where(Car.source == 'wialon').all()
 
     @staticmethod
-    def add_wialon_transport_if_not_exists(transports):
+    def add_wialon_transport_if_not_exists(transports: list[dict]):
+        """
+        Add transport with source == 'wialon' if not exists in DB already
+        :param transports: dictionary representation of transport
+        :return:
+        """
         with Session() as session:
             for transport in transports:
                 try:
@@ -47,7 +71,12 @@ class CarORM:
                     pass
 
     @staticmethod
-    def add_transport_if_not_exists(transports):
+    def add_transport_if_not_exists(transports: list[dict]):
+        """
+        Add transport if not exists in DB already
+        :param transports: dictionary representation of transport
+        :return:
+        """
         with Session() as session:
             for transport in transports:
                 try:
@@ -67,6 +96,10 @@ class CarORM:
                     pass
 
     @staticmethod
-    def get_all_transport_names():
+    def get_all_transport_names() -> list[tuple]:
+        """
+        Get cars with columns id and name
+        :return: list of Car objects
+        """
         with Session() as session:
             return session.query(Car.id, Car.name).all()

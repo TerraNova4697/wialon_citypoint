@@ -1,3 +1,4 @@
+"""Here describe all database tables for the project. We use SQLAlchemy classes for it."""
 from sqlalchemy import String, Integer, Boolean, ForeignKey, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 

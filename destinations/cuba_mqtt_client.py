@@ -1,3 +1,4 @@
+"""Class that forms """
 import asyncio
 import os
 import logging
@@ -18,7 +19,13 @@ class CubaMqttClient(AbstractDestination):
         self.mqtt_client = mqtt_client
         self.transport_map = {transport[0]: transport[1] for transport in CarORM.get_all_transport_names()}
 
-    def send_data(self, device_name, telemetry) -> bool:
+    def send_data(self, device_name: str, telemetry: dict | list) -> bool:
+        """
+        Send a single telemetry for given device name
+        :param device_name:
+        :param telemetry:
+        :return:
+        """
         result = self.mqtt_client.gw_send_telemetry(device_name, telemetry)
         successful = result.rc() == TBPublishInfo.TB_ERR_SUCCESS
         if not successful:
@@ -26,6 +33,10 @@ class CubaMqttClient(AbstractDestination):
         return result.rc() == TBPublishInfo.TB_ERR_SUCCESS
 
     async def send_history_data(self):
+        """
+        Get all historical data for every transport and send it to the core as telemetry
+        :return:
+        """
         transport_ids = CarORM.get_transport_ids()
         for transport_id in transport_ids:
             device_name = self.transport_map[transport_id]

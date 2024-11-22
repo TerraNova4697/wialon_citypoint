@@ -65,6 +65,8 @@ class WialonConnector(AbstractConnector):
             if next_run < now:
                 next_run += timedelta(days=1)
 
+            await self.send_report()
+
             time_to_wait = (next_run - now).total_seconds()
             logger.info(f"Waiting {time_to_wait} seconds until the next run at {next_run}")
 

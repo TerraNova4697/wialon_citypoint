@@ -1,3 +1,4 @@
+"""Starting point for working with City Point monitoring system"""
 from time import sleep
 
 from urllib3.exceptions import NameResolutionError
@@ -24,6 +25,8 @@ class CityPointSource(AbstractTransportSource):
         self.session = requests.session()
         self.delay: int | None = None
         self.BASE_URL: str = "https://api.citypoint.ru/v2.1"
+
+        # Endpoints for REST API
         self.AUTH_URL: str = "/oauth/token"
         self.TS_INFO: str = f"/cars/states?fields[carState]=Lon,Lat,Velocity,RecordDate,LattestGpsDate,LattestConnectionTime,Sensors.value,Sensors.calibration"
         self.TS_LIST: str = f"/cars?filter[car]=eq(IsHidden,0)"
@@ -32,7 +35,11 @@ class CityPointSource(AbstractTransportSource):
         self.GEO_ZONES: str = '/zones?fields[zone]=Name,Description,Geometry'
         self.DAY_CAR_INFO: str = '/cars/aggregated/{}/day?fields[carAggrData]=Mileage,WorkingHours,FuelConsumptionHour,FuelConsumptionKm,IdleFuelVolume,IdleHours,Car'
 
-    def get_velocity_zones(self):
+    def get_velocity_zones(self) -> dict | None:
+        """
+        Get all geo zones
+        :return:
+        """
         self.get_token_if_expired()
         headers = self.header
         try:
@@ -47,7 +54,11 @@ class CityPointSource(AbstractTransportSource):
             return res.json()
         report_error(res)
 
-    def get_transport_list(self):
+    def get_transport_list(self) -> dict | None:
+        """
+        Get list of transport. Return dict if request successful. None if status code != 2**
+        :return:
+        """
         self.get_token_if_expired()
         headers = self.header
         try:
@@ -62,7 +73,12 @@ class CityPointSource(AbstractTransportSource):
             return res.json()
         report_error(res)
 
-    def get_transports(self, query_filter: str = ''):
+    def get_transports(self, query_filter: str = '') -> dict | None:
+        """
+        Get list of current transport states. Return dict if request successful. None if status code != 2**
+        :param query_filter:
+        :return:
+        """
         self.get_token_if_expired()
         headers = self.header
         try:
@@ -77,7 +93,14 @@ class CityPointSource(AbstractTransportSource):
             return res.json()
         report_error(res)
 
-    def get_historical_messages_by_id(self, transport_id, start_ts, end_ts):
+    def get_historical_messages_by_id(self, transport_id, start_ts, end_ts) -> dict | None:
+        """
+        Get list of historical transport states for given transport ID. Return dict if request successful. None if status code != 2**
+        :param transport_id:
+        :param start_ts:
+        :param end_ts:
+        :return:
+        """
         self.get_token_if_expired()
         dt = datetime.fromtimestamp(start_ts)
         formatted_dt = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -102,7 +125,11 @@ class CityPointSource(AbstractTransportSource):
         token = jwt.decode(self.access_token, options={"verify_signature": False})
         self.user_id = token.get('user_id')
 
-    def auth(self):
+    def auth(self) -> bool:
+        """
+        Authenticate in the system and get access and refresh tokens. Returns True if successful. False otherwise
+        :return:
+        """
         try:
             res = requests.post(
                 url=self.BASE_URL + self.AUTH_URL,
@@ -120,7 +147,11 @@ class CityPointSource(AbstractTransportSource):
         report_error(res)
         return False
 
-    def get_messages(self):
+    def get_messages(self) -> dict | None:
+        """
+        Get list messages. Return dict if request successful. None if status code != 2**
+        :return:
+        """
         self.get_token_if_expired()
         headers = self.header
         try:
@@ -135,7 +166,11 @@ class CityPointSource(AbstractTransportSource):
             return res.json()
         report_error(res)
 
-    def is_connected(self):
+    def is_connected(self) -> bool:
+        """
+        Check if access token is expired
+        :return:
+        """
         return datetime.now() > self.expires_at
 
     def reinitialize_session(self):
@@ -148,7 +183,11 @@ class CityPointSource(AbstractTransportSource):
             "Authorization": f"{self.token_type} {self.access_token}"
         }
 
-    def get_access_token(self):
+    def __get_access_token(self) -> bool:
+        """
+        Update access token
+        :return:
+        """
         try:
             res = requests.post(
                 url=self.BASE_URL + self.AUTH_URL,
@@ -164,19 +203,24 @@ class CityPointSource(AbstractTransportSource):
             self.update_token(res.json())
             return True
         report_error(res)
+        return False
 
     def get_token_if_expired(self):
+        """
+        If access token is expired, update it
+        :return:
+        """
         if not self.is_connected():
             # if self.delay:
             #     sleep(self.delay)
             #     self.delay = None
-            while not self.get_access_token():
+            while not self.__get_access_token():
                 sleep(10)
 
-    def get_day_info(self, date_str):
+    def get_day_info(self, date_str: str) -> dict | None:
         """
-
-        :param date_str: YYYY-MM-DD
+        Get list of data for the given day. Return dict if request successful. None if status code != 2**
+        :param date_str: date string representation with format: YYYY-MM-DD
         :return:
         """
         self.get_token_if_expired()
@@ -193,7 +237,11 @@ class CityPointSource(AbstractTransportSource):
             return res.json()
         report_error(res)
 
-    def get_sensors(self):
+    def get_sensors(self) -> dict | None:
+        """
+        Get list of all sensors. Return dict if request successful. None if status code != 2**
+        :return:
+        """
         self.get_token_if_expired()
         headers = self.header
         try:

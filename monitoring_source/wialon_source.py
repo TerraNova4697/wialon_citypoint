@@ -1,3 +1,4 @@
+"""Starting point for working with Wialon monitoring system"""
 import requests
 import json
 
@@ -18,7 +19,11 @@ class WialonSource(AbstractTransportSource):
         self.session = requests.session()
         self.BASE_URL: str = 'https://hst-api.wialon.com/wialon/ajax.html?svc='
 
-    def get_velocity_zones(self):
+    def get_velocity_zones(self) -> dict | None:
+        """
+        Get all geo zones
+        :return:
+        """
         if not self.is_connected():
             self.auth()
         params = {
@@ -44,7 +49,11 @@ class WialonSource(AbstractTransportSource):
             return res.json()
         report_error(res)
 
-    def get_transport_list(self):
+    def get_transport_list(self) -> dict | None:
+        """
+        Get list of transport. Return dict if request successful. None if status code != 2**
+        :return:
+        """
         if not self.is_connected():
             self.auth()
         params = {
@@ -69,7 +78,12 @@ class WialonSource(AbstractTransportSource):
             return res.json()
         report_error(res)
 
-    def get_transports(self, query_filter: str = ''):
+    def get_transports(self, query_filter: str = '') -> dict | None:
+        """
+        Get list of current transport states. Return dict if request successful. None if status code != 2**
+        :param query_filter:
+        :return:
+        """
         if not self.is_connected():
             self.auth()
         params = {
@@ -97,7 +111,14 @@ class WialonSource(AbstractTransportSource):
     def get_messages(self):
         pass
 
-    def get_historical_messages_by_id(self, item_id, start_ts, end_ts):
+    def get_historical_messages_by_id(self, item_id, start_ts, end_ts) -> dict | None:
+        """
+        Get list of historical transport states for given transport ID. Return dict if request successful. None if status code != 2**
+        :param item_id:
+        :param start_ts:
+        :param end_ts:
+        :return:
+        """
         if not self.is_connected():
             self.auth()
         params = {
@@ -118,12 +139,20 @@ class WialonSource(AbstractTransportSource):
         report_error(res)
         return res.json()
 
-    def is_connected(self):
+    def is_connected(self) -> bool:
+        """
+        Check if access token is expired
+        :return:
+        """
         if not self.access_token:
             return False
         return True
 
-    def auth(self):
+    def auth(self) -> bool:
+        """
+        Authenticate in the system and get access and refresh tokens. Returns True if successful. False otherwise
+        :return:
+        """
         params = {"token": self.refresh_token}
         try:
             res = self.session.get(self.BASE_URL + 'token/login&params=' + json.dumps(params))
@@ -144,7 +173,11 @@ class WialonSource(AbstractTransportSource):
         self.session = requests.session()
         self.manage_session_units(args)
 
-    def get_counters_info(self):
+    def get_counters_info(self) -> dict | None:
+        """
+        Get list of counters with its current state. Return dict if request successful
+        :return:
+        """
         if not self.is_connected():
             self.auth()
         params = {
@@ -169,7 +202,12 @@ class WialonSource(AbstractTransportSource):
             return res.json()
         report_error(res)
 
-    def manage_session_units(self, item_ids):
+    def manage_session_units(self, item_ids: list[int]) -> dict | None:
+        """
+        Load transports in session to obtain its AVL events
+        :param item_ids:
+        :return:
+        """
         if not self.is_connected():
             self.auth()
         params = {
@@ -192,7 +230,11 @@ class WialonSource(AbstractTransportSource):
         report_error(res)
         return res.json()
 
-    def get_avl_event(self):
+    def get_avl_event(self) -> dict | None:
+        """
+        Get all AVL events since last request
+        :return:
+        """
         if not self.is_connected():
             self.auth()
         try:

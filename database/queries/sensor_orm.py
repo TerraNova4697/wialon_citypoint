@@ -10,25 +10,43 @@ from database.models import Sensor
 class SensorORM:
 
     @staticmethod
-    def get_all_sensors():
+    def get_all_sensors() -> list[Sensor]:
+        """
+        Get all sensors
+        :return: list of Sensor objects
+        """
         with Session() as session:
             res = session.query(Sensor).all()
             return res
 
     @staticmethod
-    def get_fuel_sensors_ids():
+    def get_fuel_sensors_ids() -> list[Sensor]:
+        """
+        Get all sensors which destination is 100
+        :return: list of Sensor objects
+        """
         with Session() as session:
             query = select(Sensor.id).where(Sensor.destination == 100)
             return session.execute(query).scalars().all()
 
     @staticmethod
-    def get_sensors_by_destination(destination):
+    def get_sensors_by_destination(destination: int) -> list[Sensor]:
+        """
+        Get all sensors with specified destination value
+        :param destination: destination column
+        :return: list of Sensor objects
+        """
         with Session() as session:
             query = select(Sensor.id).where(Sensor.destination == destination)
             return session.execute(query).scalars().all()
 
     @staticmethod
-    def add_sensors_if_not_exist(sensors):
+    def add_sensors_if_not_exist(sensors: list[dict]):
+        """
+        Create sensors if not yet exist
+        :param sensors: list of dictionaries
+        :return:
+        """
         with Session() as session:
             for sensor in sensors:
                 try:
