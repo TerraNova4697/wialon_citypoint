@@ -26,6 +26,14 @@ class CarORM:
             return session.execute(query).scalars().all()
 
     @staticmethod
+    def update_car_name(car_id: str | int, name):
+        with Session() as session:
+            car = session.query(Car).where(Car.id == car_id).scalar()
+            car.name = name
+            session.add(car)
+            session.commit()
+
+    @staticmethod
     def get_all_cars_ids() -> list[int]:
         """
         Get all transport IDs.

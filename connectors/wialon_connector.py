@@ -74,6 +74,9 @@ class WialonConnector(AbstractConnector):
 
             await self.send_report()
 
+    def check_drivers_with_discreteness(self, discreteness):
+        pass
+
     async def send_report(self):
         dt = datetime.today().replace(hour=6, minute=0, second=0, microsecond=0)
         start_ts = int(datetime.timestamp(dt.replace(hour=0) - timedelta(days=1)))
@@ -278,20 +281,31 @@ class WialonConnector(AbstractConnector):
                 logger.exception(f"Exception trying to fetch transport list: {exc}")
                 await asyncio.sleep(10)
                 continue
-            transports = transports_result['items']
+            transports = transports_result.get('items', [])
             logger.info(f"Fetched {len(transports)} units")
             transport_props = []
+            mobile_group_regex = re.compile(r'[мМM][гГ]\s?-\s?\d{1,4}\D')
             for transport in transports:
 
                 department = [field['v'] for field in transport['pflds'].values() if field['n'] == 'vehicle_type']
                 model =[field['v'] for field in transport['pflds'].values() if field['n'] == 'brand']
                 reg_number = [field['v'] for field in transport['pflds'].values() if field['n'] == 'color']
+
                 if len(reg_number) == 0:
                     continue
+
                 reg_number = re.sub('[_\-|\s]', '', reg_number[0])
+
+                mobile_group_matches = re.findall(mobile_group_regex, transport['nm'])
+                if mobile_group_matches:
+                    mobile_group = mobile_group_matches[0].replace(' ', '')
+                    name = f'{mobile_group} {reg_number}'
+                else:
+                    name = reg_number
+
                 transport_props.append({
                     "id": transport['id'],
-                    "name": reg_number,
+                    "name": name,
                     'department': department[0] if department else None,
                     'model': model[0] if model else None,
                     'reg_number': reg_number,

@@ -19,6 +19,8 @@ from database.database import db_init
 from monitoring_source.citypoint_source import CityPointSource
 from monitoring_source.wialon_source import WialonSource
 
+from async_code import run_code
+
 logger = logging.getLogger(os.environ.get('LOGGER'))
 
 
@@ -72,7 +74,9 @@ if __name__ == '__main__':
 
     start_ts = datetime.timestamp(datetime.now())
     try:
-        asyncio.run(main())
+        # asyncio.run(main())
+        asyncio.run(run_code())
+        pass
     finally:
         end_ts = datetime.timestamp(datetime.now())
         RunTimeORM.create_runtime(start_ts=start_ts, end_ts=end_ts)
